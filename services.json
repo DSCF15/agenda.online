@@ -1,0 +1,59 @@
+
+{
+  "name": "services",
+  "options": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": ["name", "duration", "price", "category", "isActive", "createdAt"],
+        "properties": {
+          "name": {
+            "bsonType": "string",
+            "description": "Nome do serviço"
+          },
+          "description": {
+            "bsonType": "string",
+            "description": "Descrição do serviço"
+          },
+          "duration": {
+            "bsonType": "int",
+            "minimum": 15,
+            "maximum": 480,
+            "description": "Duração em minutos"
+          },
+          "price": {
+            "bsonType": "number",
+            "minimum": 0,
+            "description": "Preço do serviço"
+          },
+          "category": {
+            "bsonType": "string",
+            "enum": ["cabelo", "manicure", "pedicure", "sobrancelha", "depilacao", "massagem", "facial"],
+            "description": "Categoria do serviço"
+          },
+          "isActive": {
+            "bsonType": "bool",
+            "description": "Se o serviço está ativo"
+          },
+          "imageUrl": {
+            "bsonType": "string",
+            "description": "URL da imagem do serviço"
+          },
+          "createdAt": {
+            "bsonType": "string",
+            "title": "datetime",
+            "description": "Data de criação ISO 8601"
+          },
+          "updatedAt": {
+            "bsonType": "string",
+            "title": "datetime",
+            "description": "Data de atualização ISO 8601"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "validationLevel": "moderate",
+    "validationAction": "warn"
+  }
+}

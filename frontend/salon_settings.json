@@ -1,0 +1,65 @@
+
+{
+  "name": "salon_settings",
+  "options": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": ["salonName", "workingHours", "isActive", "createdAt"],
+        "properties": {
+          "salonName": {
+            "bsonType": "string",
+            "description": "Nome do salão"
+          },
+          "salonDescription": {
+            "bsonType": "string",
+            "description": "Descrição do salão"
+          },
+          "salonPhone": {
+            "bsonType": "string",
+            "description": "Telefone do salão"
+          },
+          "salonEmail": {
+            "bsonType": "string",
+            "description": "Email do salão"
+          },
+          "salonAddress": {
+            "bsonType": "string",
+            "description": "Endereço do salão"
+          },
+          "workingHours": {
+            "bsonType": "object",
+            "description": "Horários de funcionamento por dia da semana"
+          },
+          "timeSlotDuration": {
+            "bsonType": "int",
+            "minimum": 15,
+            "maximum": 60,
+            "description": "Duração dos intervalos de agendamento em minutos"
+          },
+          "isActive": {
+            "bsonType": "bool",
+            "description": "Se o salão está ativo"
+          },
+          "logoUrl": {
+            "bsonType": "string",
+            "description": "URL do logo do salão"
+          },
+          "createdAt": {
+            "bsonType": "string",
+            "title": "datetime",
+            "description": "Data de criação ISO 8601"
+          },
+          "updatedAt": {
+            "bsonType": "string",
+            "title": "datetime",
+            "description": "Data de atualização ISO 8601"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "validationLevel": "moderate",
+    "validationAction": "warn"
+  }
+}

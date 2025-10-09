@@ -1,0 +1,70 @@
+
+{
+  "name": "appointments",
+  "options": {
+    "validator": {
+      "$jsonSchema": {
+        "bsonType": "object",
+        "required": ["clientName", "clientEmail", "clientPhone", "serviceId", "appointmentDate", "appointmentTime", "status", "createdAt"],
+        "properties": {
+          "clientName": {
+            "bsonType": "string",
+            "minLength": 2,
+            "description": "Nome do cliente"
+          },
+          "clientEmail": {
+            "bsonType": "string",
+            "description": "Email do cliente"
+          },
+          "clientPhone": {
+            "bsonType": "string",
+            "description": "Telefone do cliente"
+          },
+          "serviceId": {
+            "bsonType": "string",
+            "description": "ID do serviço agendado"
+          },
+          "serviceName": {
+            "bsonType": "string",
+            "description": "Nome do serviço (cache)"
+          },
+          "servicePrice": {
+            "bsonType": "number",
+            "description": "Preço do serviço (cache)"
+          },
+          "appointmentDate": {
+            "bsonType": "string",
+            "title": "datetime",
+            "description": "Data do agendamento ISO 8601"
+          },
+          "appointmentTime": {
+            "bsonType": "string",
+            "description": "Horário do agendamento (HH:mm)"
+          },
+          "status": {
+            "bsonType": "string",
+            "enum": ["agendado", "confirmado", "cancelado", "concluido"],
+            "description": "Status do agendamento"
+          },
+          "notes": {
+            "bsonType": "string",
+            "description": "Observações adicionais"
+          },
+          "createdAt": {
+            "bsonType": "string",
+            "title": "datetime",
+            "description": "Data de criação ISO 8601"
+          },
+          "updatedAt": {
+            "bsonType": "string",
+            "title": "datetime",
+            "description": "Data de atualização ISO 8601"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "validationLevel": "moderate",
+    "validationAction": "warn"
+  }
+}
