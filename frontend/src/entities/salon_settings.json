@@ -5,45 +5,48 @@
     "validator": {
       "$jsonSchema": {
         "bsonType": "object",
-        "required": ["salonName", "workingHours", "isActive", "createdAt"],
+        "required": ["name", "address", "phone", "email", "workingHours", "createdAt"],
         "properties": {
-          "salonName": {
+          "name": {
             "bsonType": "string",
+            "minLength": 2,
+            "maxLength": 100,
             "description": "Nome do salão"
           },
-          "salonDescription": {
+          "address": {
             "bsonType": "string",
-            "description": "Descrição do salão"
+            "minLength": 10,
+            "maxLength": 200,
+            "description": "Endereço completo"
           },
-          "salonPhone": {
+          "phone": {
             "bsonType": "string",
-            "description": "Telefone do salão"
+            "description": "Telefone principal"
           },
-          "salonEmail": {
+          "email": {
             "bsonType": "string",
-            "description": "Email do salão"
-          },
-          "salonAddress": {
-            "bsonType": "string",
-            "description": "Endereço do salão"
+            "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+            "description": "Email de contato"
           },
           "workingHours": {
             "bsonType": "object",
             "description": "Horários de funcionamento por dia da semana"
           },
-          "timeSlotDuration": {
+          "slotDuration": {
             "bsonType": "int",
             "minimum": 15,
             "maximum": 60,
-            "description": "Duração dos intervalos de agendamento em minutos"
+            "description": "Duração dos slots em minutos"
           },
-          "isActive": {
-            "bsonType": "bool",
-            "description": "Se o salão está ativo"
+          "breakTime": {
+            "bsonType": "int",
+            "minimum": 0,
+            "maximum": 30,
+            "description": "Tempo de intervalo entre agendamentos"
           },
-          "logoUrl": {
+          "creator": {
             "bsonType": "string",
-            "description": "URL do logo do salão"
+            "description": "Criador da configuração"
           },
           "createdAt": {
             "bsonType": "string",
