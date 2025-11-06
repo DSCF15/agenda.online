@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useAppointments } from '../hooks/useAppointments'
@@ -7,13 +6,14 @@ import {Calendar, Users, Settings, Plus, Edit, Trash2, Eye} from 'lucide-react'
 
 const Admin = () => {
   const { user, isAuthenticated } = useAuth()
-  const { appointments, loading: appointmentsLoading, updateAppointment, deleteAppointment } = useAppointments()
+  // Usa o 'cancelAppointment' do hook
+  const { appointments, loading: appointmentsLoading, updateAppointment, cancelAppointment } = useAppointments()
   const { services, loading: servicesLoading, createService, updateService, deleteService } = useServices()
   const [activeTab, setActiveTab] = useState('appointments')
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // Verificar se o usuário é admin
+  // ... (verificação de admin está igual) ...
   if (!isAuthenticated || user?.userRole !== 'ADMIN') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -25,6 +25,7 @@ const Admin = () => {
     )
   }
 
+
   const handleAppointmentStatusChange = async (appointmentId, newStatus) => {
     try {
       await updateAppointment(appointmentId, { status: newStatus })
@@ -33,17 +34,19 @@ const Admin = () => {
     }
   }
 
-  const handleDeleteAppointment = async (appointmentId) => {
+  // Atualizado para usar a nova função
+  const handleCancelAppointment = async (appointmentId) => {
     if (window.confirm('Tem certeza que deseja cancelar este agendamento?')) {
       try {
-        await deleteAppointment(appointmentId)
+        await cancelAppointment(appointmentId) // <-- MUDANÇA AQUI
       } catch (error) {
         console.error('Erro ao cancelar agendamento:', error)
       }
     }
   }
-
-  const getStatusColor = (status) => {
+  
+  // ... (getStatusColor e tabs estão iguais) ...
+    const getStatusColor = (status) => {
     switch (status) {
       case 'agendado': return 'bg-blue-100 text-blue-800'
       case 'confirmado': return 'bg-green-100 text-green-800'
@@ -59,16 +62,17 @@ const Admin = () => {
     { id: 'customers', name: 'Clientes', icon: Users }
   ]
 
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
+        {/* Header (sem mudanças) ... */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Painel Administrativo</h1>
           <p className="text-gray-600">Gerencie agendamentos, serviços e clientes</p>
         </div>
 
-        {/* Tabs */}
+        {/* Tabs (sem mudanças) ... */}
         <div className="border-b border-gray-200 mb-8">
           <nav className="-mb-px flex space-x-8">
             {tabs.map((tab) => {
@@ -99,6 +103,7 @@ const Admin = () => {
             </div>
 
             {appointmentsLoading ? (
+              // ... (loading spinner) ...
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
               </div>
@@ -108,6 +113,7 @@ const Admin = () => {
                   {appointments.map((appointment) => (
                     <li key={appointment._id} className="px-6 py-4">
                       <div className="flex items-center justify-between">
+                        {/* ... (detalhes do agendamento) ... */}
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <p className="text-lg font-medium text-gray-900">
@@ -144,6 +150,7 @@ const Admin = () => {
                         </div>
                         
                         <div className="flex items-center space-x-2 ml-4">
+                          {/* ... (botões de status) ... */}
                           {appointment.status === 'agendado' && (
                             <button
                               onClick={() => handleAppointmentStatusChange(appointment._id, 'confirmado')}
@@ -160,12 +167,16 @@ const Admin = () => {
                               Concluir
                             </button>
                           )}
-                          <button
-                            onClick={() => handleDeleteAppointment(appointment._id)}
-                            className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
-                          >
-                            Cancelar
-                          </button>
+
+                          {/* Botão de Cancelar atualizado */}
+                          {appointment.status !== 'cancelado' && appointment.status !== 'concluido' && (
+                            <button
+                              onClick={() => handleCancelAppointment(appointment._id)} // <-- MUDANÇA AQUI
+                              className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
+                            >
+                              Cancelar
+                            </button>
+                          )}
                         </div>
                       </div>
                     </li>
@@ -182,7 +193,7 @@ const Admin = () => {
           </div>
         )}
 
-        {/* Services Tab */}
+        {/* Services Tab (sem mudanças) ... */}
         {activeTab === 'services' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -242,7 +253,8 @@ const Admin = () => {
           </div>
         )}
 
-        {/* Customers Tab */}
+
+        {/* Customers Tab (sem mudanças) ... */}
         {activeTab === 'customers' && (
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold text-gray-900">Clientes</h2>

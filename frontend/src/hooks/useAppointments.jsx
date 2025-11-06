@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { lumi } from '../lib/lumi'
 
@@ -8,9 +7,12 @@ export const useAppointments = () => {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    // Nota: Isto SÓ deve ser chamado na página de Admin.
+    // Se não estivermos no Admin, nem devia correr.
     fetchAppointments()
   }, [])
 
+  // Esta função é PESADA. Só o Admin a deve usar.
   const fetchAppointments = async () => {
     try {
       setLoading(true)
@@ -26,19 +28,12 @@ export const useAppointments = () => {
     }
   }
 
+  /* Esta função é INSEGURA e LENTA.
+   O ideal é chamar uma Função Lumi (backend) para fazer isto.
+   ex: lumi.functions.execute('createSecureAppointment', appointmentData)
+  */
   const createAppointment = async (appointmentData) => {
     try {
-      // Verificar se já existe agendamento no mesmo horário
-      const conflictingAppointment = appointments.find(apt => 
-        apt.appointmentDate === appointmentData.appointmentDate &&
-        apt.appointmentTime === appointmentData.appointmentTime &&
-        apt.status !== 'cancelado'
-      )
-
-      if (conflictingAppointment) {
-        throw new Error('Já existe um agendamento neste horário')
-      }
-
       const newAppointment = await lumi.entities.appointments.create({
         ...appointmentData,
         createdAt: new Date().toISOString(),
@@ -70,44 +65,20 @@ export const useAppointments = () => {
     }
   }
 
-  const deleteAppointment = async (appointmentId) => {
+  // Renomeado para ser mais claro. Em vez de apagar, cancelamos.
+  const cancelAppointment = async (appointmentId) => {
     try {
-      await lumi.entities.appointments.delete(appointmentId)
-      setAppointments(prev => prev.filter(appointment => appointment._id !== appointmentId))
+      return await updateAppointment(appointmentId, { status: 'cancelado' })
     } catch (error) {
-      console.error('Erro ao deletar agendamento:', error)
+      console.error('Erro ao cancelar agendamento:', error)
       throw error
     }
   }
 
-  const getAvailableTimeSlots = (date, serviceId, serviceDuration) => {
-    // Horários de funcionamento (9h às 18h)
-    const workingHours = {
-      start: 9,
-      end: 18
-    }
+  // Esta função NUNCA devia estar no frontend.
+  // const getAvailableTimeSlots = (...) => { ... } // REMOVIDO!
 
-    // Gerar slots de 30 em 30 minutos
-    const timeSlots = []
-    for (let hour = workingHours.start; hour < workingHours.end; hour++) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
-        timeSlots.push(time)
-      }
-    }
-
-    // Filtrar horários já ocupados
-    const occupiedSlots = appointments
-      .filter(apt => 
-        apt.appointmentDate === date && 
-        apt.status !== 'cancelado'
-      )
-      .map(apt => apt.appointmentTime)
-
-    // Retornar apenas horários disponíveis
-    return timeSlots.filter(slot => !occupiedSlots.includes(slot))
-  }
-
+  // Funções de filtragem (OK para o Admin)
   const getAppointmentsByDate = (date) => {
     return appointments.filter(apt => apt.appointmentDate === date)
   }
@@ -122,8 +93,7 @@ export const useAppointments = () => {
     error,
     createAppointment,
     updateAppointment,
-    deleteAppointment,
-    getAvailableTimeSlots,
+    cancelAppointment, // Nome mudado
     getAppointmentsByDate,
     getAppointmentsByStatus,
     refetch: fetchAppointments

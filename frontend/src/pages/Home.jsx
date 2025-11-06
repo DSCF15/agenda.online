@@ -1,12 +1,13 @@
-
 import React, { useState } from 'react'
 import { useServices } from '../hooks/useServices'
+import { useSalonSettings } from '../hooks/useSalonSettings' // <-- Importa o hook
 import ServiceCard from '../components/ServiceCard'
 import BookingModal from '../components/BookingModal'
 import {Sparkles, Star, MapPin, Phone, Mail, Clock, Users, Award} from 'lucide-react'
 
 const Home = () => {
   const { services, loading } = useServices()
+  const { settings, loading: settingsLoading } = useSalonSettings() // <-- Usa o hook
   const [selectedService, setSelectedService] = useState(null)
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false)
 
@@ -18,17 +19,6 @@ const Home = () => {
   const handleCloseModal = () => {
     setIsBookingModalOpen(false)
     setSelectedService(null)
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando serviços...</p>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -44,12 +34,13 @@ const Home = () => {
               </div>
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-              Bella Vista Salon
+              {settings?.name || 'Salão de Beleza'} {/* <-- MUDANÇA */}
             </h1>
             <p className="text-xl md:text-2xl text-white opacity-90 mb-8 max-w-3xl mx-auto">
-              Transforme seu visual com nossos serviços de beleza premium. 
-              Agende online e garanta seu horário!
+              Transforme o seu visual com os nossos serviços de beleza premium. 
+              Agende online e garanta o seu horário!
             </p>
+            {/* ... botões ... */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
                 href="#services"
@@ -68,7 +59,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Stats Section */}
+      {/* Stats Section (sem mudanças) ... */}
       <div className="bg-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
@@ -97,52 +88,58 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Services Section */}
-      <div id="services" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+
+      {/* Services Section (sem mudanças) ... */}
+       <div id="services" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
             Nossos Serviços
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Oferecemos uma ampla gama de serviços de beleza para realçar sua beleza natural
+            Oferecemos uma ampla gama de serviços de beleza para realçar a sua beleza natural
           </p>
         </div>
 
-        {services.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {services.map((service) => (
-              <ServiceCard
-                key={service._id}
-                service={service}
-                onSelect={handleServiceSelect}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16">
+        {loading ? (
+        <div className="text-center py-16">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando serviços...</p>
+        </div>
+      ) : services.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {services.map((service) => (
+            <ServiceCard
+              key={service._id}
+              service={service}
+              onSelect={handleServiceSelect}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16">
             <div className="bg-white rounded-2xl shadow-lg p-12 max-w-md mx-auto">
               <Sparkles className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
                 Serviços em breve
               </h3>
               <p className="text-gray-600">
-                Estamos preparando nossos serviços. Volte em breve!
+                Estamos preparando os nossos serviços. Volte em breve!
               </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* About Section */}
+      {/* About Section (sem mudanças) ... */}
       <div className="bg-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                Sobre o Bella Vista
+                Sobre o {settings?.name || 'Salão'} {/* <-- MUDANÇA */}
               </h2>
               <p className="text-lg text-gray-600 mb-6">
-                Com mais de 5 anos de experiência, o Bella Vista Salon é referência em beleza e bem-estar. 
+                Com mais de 5 anos de experiência, o {settings?.name || 'Salão'} é referência em beleza e bem-estar. 
                 Nossa equipe de profissionais qualificados está sempre pronta para oferecer o melhor atendimento.
               </p>
               <div className="space-y-4">
@@ -172,7 +169,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Contact Section */}
+      {/* Contact Section (Atualizado com dados do hook) */}
       <div id="contact" className="bg-gray-50 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -190,10 +187,8 @@ const Home = () => {
                 <MapPin className="h-8 w-8 text-purple-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Endereço</h3>
-              <p className="text-gray-600">
-                Rua das Flores, 123<br />
-                Centro, São Paulo - SP<br />
-                01234-567
+              <p className="text-gray-600 whitespace-pre-line"> {/* Permite quebras de linha */}
+                {settingsLoading ? 'Carregando...' : (settings?.address || 'Endereço não disponível')}
               </p>
             </div>
 
@@ -203,8 +198,7 @@ const Home = () => {
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Telefone</h3>
               <p className="text-gray-600">
-                (11) 99999-9999<br />
-                (11) 3333-3333
+                {settingsLoading ? 'Carregando...' : (settings?.phone || 'Telefone não disponível')}
               </p>
             </div>
 
@@ -214,8 +208,7 @@ const Home = () => {
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Email</h3>
               <p className="text-gray-600">
-                contato@bellavista.com<br />
-                agendamento@bellavista.com
+                {settingsLoading ? 'Carregando...' : (settings?.email || 'Email não disponível')}
               </p>
             </div>
           </div>

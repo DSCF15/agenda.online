@@ -1,11 +1,12 @@
-
 import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useSalonSettings } from '../hooks/useSalonSettings' // <-- Importa o novo hook
 import {Menu, X, User, LogOut, Sparkles} from 'lucide-react'
 
 const Header = () => {
   const { user, isAuthenticated, signIn, signOut } = useAuth()
+  const { settings } = useSalonSettings() // <-- Usa o hook
   const location = useLocation()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
@@ -16,7 +17,8 @@ const Header = () => {
     { name: 'Contato', href: '/#contact' }
   ]
 
-  const isActive = (href) => {
+  // ... (o resto das funções isActive e handleSignIn está igual) ...
+   const isActive = (href) => {
     if (href === '/') return location.pathname === '/'
     return location.pathname === href
   }
@@ -29,6 +31,7 @@ const Header = () => {
     }
   }
 
+
   return (
     <header className="bg-white shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -39,11 +42,11 @@ const Header = () => {
               <Sparkles className="h-6 w-6 text-white" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Bella Vista
+              {settings?.name || 'Carregando...'} {/* <-- MUDANÇA AQUI */}
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation (sem mudanças) ... */}
           <nav className="hidden md:flex space-x-8">
             {navigation.map((item) => (
               <Link
@@ -60,7 +63,7 @@ const Header = () => {
             ))}
           </nav>
 
-          {/* Desktop Auth */}
+          {/* Desktop Auth (sem mudanças) ... */}
           <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
               <div className="flex items-center space-x-3">
@@ -94,7 +97,7 @@ const Header = () => {
             )}
           </div>
 
-          {/* Mobile menu button */}
+          {/* Mobile menu button (sem mudanças) ... */}
           <div className="md:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -105,7 +108,7 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation (sem mudanças) ... */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200">
             <div className="space-y-2">
@@ -124,7 +127,7 @@ const Header = () => {
                 </Link>
               ))}
               
-              {/* Mobile Auth */}
+              {/* Mobile Auth (sem mudanças) ... */}
               <div className="pt-2 border-t border-gray-200">
                 {isAuthenticated ? (
                   <div className="space-y-2">
