@@ -59,7 +59,10 @@ router.get('/current', async (req, res) => {
 router.put('/current', [
   body('businessName').optional().isLength({ min: 1, max: 100 }).withMessage('Nome deve ter entre 1 e 100 caracteres'),
   body('businessEmail').optional().isEmail().withMessage('Email inválido'),
-  body('businessPhone').optional().matches(/^\(\d{2}\)\s\d{4,5}-\d{4}$/).withMessage('Formato de telefone inválido'),
+  body('businessPhone')
+  .optional()
+  .isLength({ min: 8 })
+  .withMessage('Telefone deve ter pelo menos 8 dígitos'),
   body('businessAddress.street').optional().notEmpty().withMessage('Endereço é obrigatório'),
   body('businessAddress.city').optional().notEmpty().withMessage('Cidade é obrigatória'),
   body('businessAddress.state').optional().notEmpty().withMessage('Estado é obrigatório'),

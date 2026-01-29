@@ -21,10 +21,12 @@ const tenantSchema = new mongoose.Schema({
     match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Email inválido']
   },
   businessPhone: {
-    type: String,
-    required: [true, 'Telefone é obrigatório'],
-    match: [/^\(\d{2}\)\s\d{4,5}-\d{4}$/, 'Formato de telefone inválido']
-  },
+      type: String,
+      required: [true, 'Telefone é obrigatório'],
+      // Removemos o 'match' complicado do Brasil
+      // Aceitamos qualquer coisa com pelo menos 8 digitos
+      minlength: [8, 'Telefone deve ter pelo menos 8 dígitos']
+    },
   businessAddress: {
     street: { type: String, required: true },
     city: { type: String, required: true },

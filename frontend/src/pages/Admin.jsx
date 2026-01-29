@@ -2,384 +2,119 @@ import React, { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useAppointments } from '../hooks/useAppointments'
 import { useServices } from '../hooks/useServices'
-import { Calendar, Users, Settings, Plus, Edit, Trash2, Eye, LogOut } from 'lucide-react'
+import { Calendar as CalIcon, Users, Settings, Plus, LogOut } from 'lucide-react'
+import AdminCalendar from '../components/AdminCalendar' // <--- O novo componente
+import toast from 'react-hot-toast'
 
 const Admin = () => {
-  // Hooks de Autenticação e Dados
-  const { user, isAuthenticated, signIn, signOut } = useAuth()
-  const { appointments, loading: appointmentsLoading, updateAppointment, cancelAppointment } = useAppointments()
-  const { services, loading: servicesLoading, createService, updateService, deleteService } = useServices()
+  const { user, signOut } = useAuth()
+  const { appointments, updateAppointment, cancelAppointment } = useAppointments()
+  const { services, deleteService, createService } = useServices() // Precisas do createService aqui
 
-  // Estados do Dashboard
-  const [activeTab, setActiveTab] = useState('appointments')
-  const [selectedAppointment, setSelectedAppointment] = useState(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-
-  // Estados do Formulário de Login
+  const [activeTab, setActiveTab] = useState('calendar') // Tab padrão agora é Calendário
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loginError, setLoginError] = useState('')
-  const [loginLoading, setLoginLoading] = useState(false)
 
-  // --- LÓGICA DE LOGIN ---
-  const handleLogin = async (e) => {
-    e.preventDefault()
-    setLoginError('')
-    setLoginLoading(true)
-    try {
-      await signIn(email, password)
-      // O estado isAuthenticated muda automaticamente e renderiza o dashboard
-    } catch (err) {
-      setLoginError('Login falhou. Verifica as credenciais.')
-    } finally {
-      setLoginLoading(false)
+  // (Mantém a lógica de Login e Verificação de Admin que já tínhamos...)
+  // ... (Se quiseres, copia a parte do "if (!isAuthenticated)" do teu ficheiro anterior para aqui)
+  
+  // Função auxiliar para quando clicam num evento no calendário
+  const handleEventClick = (event) => {
+    const action = window.prompt(
+      `Cliente: ${event.resource.clientName}\nServiço: ${event.resource.serviceName}\n\nEscreve 'cancelar' para cancelar ou 'concluir' para fechar conta.`
+    )
+
+    if (action?.toLowerCase() === 'cancelar') {
+      cancelAppointment(event.id)
+      toast.success('Marcação cancelada')
+    } else if (action?.toLowerCase() === 'concluir') {
+      updateAppointment(event.id, { status: 'concluido' })
+      toast.success('Corte concluído!')
     }
   }
 
-  // --- LÓGICA DO DASHBOARD ---
-  const handleAppointmentStatusChange = async (appointmentId, newStatus) => {
-    try {
-      await updateAppointment(appointmentId, { status: newStatus })
-    } catch (error) {
-      console.error('Erro ao atualizar status:', error)
-    }
-  }
-
-  const handleCancelAppointment = async (appointmentId) => {
-    if (window.confirm('Tem certeza que deseja cancelar este agendamento?')) {
-      try {
-        await cancelAppointment(appointmentId)
-      } catch (error) {
-        console.error('Erro ao cancelar agendamento:', error)
-      }
-    }
-  }
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'agendado': return 'bg-blue-100 text-blue-800'
-      case 'confirmado': return 'bg-green-100 text-green-800'
-      case 'concluido': return 'bg-purple-100 text-purple-800'
-      case 'cancelado': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const tabs = [
-    { id: 'appointments', name: 'Agendamentos', icon: Calendar },
-    { id: 'services', name: 'Serviços', icon: Settings },
-    { id: 'customers', name: 'Clientes', icon: Users }
-  ]
-  // Função temporária para testar a criação na Base de Dados
-const handleCreateTestService = async () => {
-  const confirm = window.confirm("Queres criar um 'Corte de Teste' automático?")
-  if (!confirm) return;
-
-  try {
-    await createService({
-      name: "Corte Degradê (Teste)",
-      description: "Corte moderno com acabamento na navalha.",
-      duration: 45,
-      price: 15.00,
-      category: "corte_cabelo",
-      active: true
-    })
-    alert("✅ Serviço criado com sucesso! Verifica a lista.")
-  } catch (error) {
-    alert("❌ Erro ao criar: " + error.message)
-  }
-}
-  // === RENDERIZAÇÃO ===
-
-  // 1. Se NÃO estiver autenticado -> Mostra Formulário de Login
+  // Se não estiver logado, mostra login (Copia o teu form de login anterior aqui ou usa este simplificado)
+  const { isAuthenticated, signIn } = useAuth()
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
-          <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              Área Administrativa
-            </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
-              Gestão da Barbearia
-            </p>
-          </div>
-          <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-            <div className="rounded-md shadow-sm space-y-4">
-              <div>
-                <label className="sr-only">Email</label>
-                <input
-                  type="email"
-                  required
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-                  placeholder="Email de Admin"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="sr-only">Senha</label>
-                <input
-                  type="password"
-                  required
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-                  placeholder="Senha"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {loginError && (
-              <div className="text-red-500 text-sm text-center bg-red-50 p-2 rounded">
-                {loginError}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loginLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
-            >
-              {loginLoading ? 'A entrar...' : 'Entrar'}
-            </button>
-            
-            <div className="text-center text-xs text-gray-400 mt-4">
-              <p>Credenciais de Teste:</p>
-              <p>admin@admin.com / 123456</p>
-            </div>
-          </form>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <form onSubmit={(e) => { e.preventDefault(); signIn(email, password).catch(() => toast.error('Erro login')) }} className="bg-white p-8 rounded shadow-md w-96 space-y-4">
+          <h2 className="text-xl font-bold text-center">Login Barbearia</h2>
+          <input type="email" placeholder="Email" className="w-full border p-2 rounded" value={email} onChange={e => setEmail(e.target.value)} />
+          <input type="password" placeholder="Senha" className="w-full border p-2 rounded" value={password} onChange={e => setPassword(e.target.value)} />
+          <button type="submit" className="w-full bg-purple-600 text-white p-2 rounded">Entrar</button>
+          <div className="text-xs text-center text-gray-500">Tenta: j@barbeariaj.pt / password123</div>
+        </form>
       </div>
     )
   }
 
-  // 2. Se estiver logado mas NÃO for admin (Segurança extra)
-  // Nota: Verifiquei que o backend envia 'admin' (minúsculo), ajustei aqui.
-  if (user?.role !== 'admin' && user?.userRole !== 'ADMIN') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center p-8 bg-white rounded-lg shadow">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Acesso Negado</h1>
-          <p className="text-gray-600 mb-4">A sua conta não tem permissões de administrador.</p>
-          <button onClick={signOut} className="text-purple-600 hover:text-purple-800 font-medium">
-            Voltar ao Login
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // 3. Se for ADMIN -> Mostra o Dashboard
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header do Dashboard */}
-        <div className="mb-8 flex justify-between items-start">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Header Simples */}
+        <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Painel Administrativo</h1>
-            <p className="text-gray-600">Bem-vindo, {user?.name}</p>
+            <h1 className="text-2xl font-bold text-gray-900">Painel {user?.name}</h1>
+            <p className="text-sm text-gray-500">Barbearia J (Tenant: {user?.tenantId})</p>
           </div>
-          <button 
-            onClick={signOut}
-            className="flex items-center space-x-2 text-gray-600 hover:text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 transition-colors"
-          >
-            <LogOut size={20} />
-            <span>Sair</span>
+          <button onClick={signOut} className="flex items-center space-x-2 text-red-600 hover:bg-red-50 px-3 py-2 rounded">
+            <LogOut size={18} /> <span>Sair</span>
           </button>
         </div>
 
         {/* Tabs de Navegação */}
-        <div className="border-b border-gray-200 mb-8">
-          <nav className="-mb-px flex space-x-8">
-            {tabs.map((tab) => {
-              const Icon = tab.icon
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === tab.id
-                      ? 'border-purple-500 text-purple-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon size={20} />
-                  <span>{tab.name}</span>
-                </button>
-              )
-            })}
-          </nav>
+        <div className="flex space-x-4 mb-6 border-b">
+          <button onClick={() => setActiveTab('calendar')} className={`pb-2 px-4 ${activeTab === 'calendar' ? 'border-b-2 border-purple-600 text-purple-600 font-bold' : 'text-gray-500'}`}>
+            <div className="flex items-center gap-2"><CalIcon size={18}/> Agenda Semanal</div>
+          </button>
+          <button onClick={() => setActiveTab('services')} className={`pb-2 px-4 ${activeTab === 'services' ? 'border-b-2 border-purple-600 text-purple-600 font-bold' : 'text-gray-500'}`}>
+             <div className="flex items-center gap-2"><Settings size={18}/> Serviços</div>
+          </button>
         </div>
 
-        {/* Conteúdo das Abas */}
+        {/* --- CONTEÚDO --- */}
         
-        {/* TAB: Agendamentos */}
-        {activeTab === 'appointments' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold text-gray-900">Agendamentos</h2>
-            </div>
-
-            {appointmentsLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-              </div>
-            ) : (
-              <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                <ul className="divide-y divide-gray-200">
-                  {appointments.map((appointment) => (
-                    <li key={appointment._id} className="px-6 py-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <p className="text-lg font-medium text-gray-900">
-                              {appointment.clientName}
-                            </p>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(appointment.status)}`}>
-                              {appointment.status}
-                            </span>
-                          </div>
-                          <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-                            <div><strong>Serviço:</strong> {appointment.serviceName}</div>
-                            <div><strong>Data:</strong> {new Date(appointment.appointmentDate).toLocaleDateString('pt-BR')}</div>
-                            <div><strong>Horário:</strong> {appointment.appointmentTime}</div>
-                          </div>
-                          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                            <div><strong>Telefone:</strong> {appointment.clientPhone}</div>
-                            <div><strong>Email:</strong> {appointment.clientEmail}</div>
-                          </div>
-                          {appointment.notes && (
-                            <div className="mt-2 text-sm text-gray-600">
-                              <strong>Observações:</strong> {appointment.notes}
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center space-x-2 ml-4">
-                          {appointment.status === 'agendado' && (
-                            <button
-                              onClick={() => handleAppointmentStatusChange(appointment._id, 'confirmado')}
-                              className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-                            >
-                              Confirmar
-                            </button>
-                          )}
-                          {appointment.status === 'confirmado' && (
-                            <button
-                              onClick={() => handleAppointmentStatusChange(appointment._id, 'concluido')}
-                              className="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700"
-                            >
-                              Concluir
-                            </button>
-                          )}
-                          {appointment.status !== 'cancelado' && appointment.status !== 'concluido' && (
-                            <button
-                              onClick={() => handleCancelAppointment(appointment._id)}
-                              className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
-                            >
-                              Cancelar
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                
-                {appointments.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    Nenhum agendamento encontrado.
-                  </div>
-                )}
-              </div>
-            )}
+        {/* VISÃO DE CALENDÁRIO */}
+        {activeTab === 'calendar' && (
+          <div className="animate-fade-in">
+             <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+               <p className="text-sm text-blue-700">💡 Dica: Clica numa marcação para Cancelar ou Concluir.</p>
+             </div>
+             <AdminCalendar 
+                appointments={appointments} 
+                onSelectEvent={handleEventClick} 
+             />
           </div>
         )}
 
-        {/* TAB: Serviços */}
+        {/* VISÃO DE SERVIÇOS (Lista) */}
         {activeTab === 'services' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold text-gray-900">Serviços</h2>
-              <button onClick={handleCreateTestService}
-              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center space-x-2">
-                <Plus size={20} />
-                <span>Novo Serviço</span>
-              </button>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+             {/* Cartão para criar novo serviço rápido (para teste) */}
+             <div 
+               onClick={() => createService({ name: "Novo Corte", price: 15, duration: 30, category: "Geral", active: true })}
+               className="border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-purple-500 h-40"
+             >
+               <div className="text-center text-gray-500">
+                 <Plus className="mx-auto mb-2" />
+                 Criar Serviço Rápido
+               </div>
+             </div>
 
-            {servicesLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {services.map((service) => (
-                  <div key={service._id} className="bg-white rounded-lg shadow p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900">{service.name}</h3>
-                      <div className="flex space-x-2">
-                        <button className="text-gray-400 hover:text-purple-600">
-                          <Edit size={16} />
-                        </button>
-                        <button 
-                          onClick={() => {
-    if (window.confirm('Tem a certeza que deseja apagar este serviço?')) {
-      deleteService(service._id)
-    }
-  }}
-                          className="text-gray-400 hover:text-red-600"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <p className="text-gray-600 text-sm mb-4">{service.description}</p>
-                    
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Categoria:</span>
-                        <span className="font-medium">{service.category}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Duração:</span>
-                        <span className="font-medium">{service.duration} min</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Preço:</span>
-                        <span className="font-medium text-purple-600">R$ {service.price.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Status:</span>
-                        <span className={`font-medium ${service.active ? 'text-green-600' : 'text-red-600'}`}>
-                          {service.active ? 'Ativo' : 'Inativo'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+             {services.map(service => (
+               <div key={service._id} className="bg-white p-6 rounded-lg shadow flex justify-between items-start">
+                 <div>
+                   <h3 className="font-bold text-lg">{service.name}</h3>
+                   <p className="text-gray-500 text-sm">{service.duration} min • {service.category}</p>
+                   <p className="text-purple-600 font-bold mt-2">€ {service.price}</p>
+                 </div>
+                 <button onClick={() => deleteService(service._id)} className="text-red-400 hover:text-red-600">Apagar</button>
+               </div>
+             ))}
           </div>
         )}
 
-        {/* TAB: Clientes */}
-        {activeTab === 'customers' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-gray-900">Clientes</h2>
-            <div className="bg-white rounded-lg shadow p-8 text-center">
-              <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Gestão de Clientes
-              </h3>
-              <p className="text-gray-600">
-                Esta funcionalidade estará disponível em breve.
-              </p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

@@ -20,7 +20,7 @@ const tenantServiceSchema = new mongoose.Schema({
   duration: {
     type: Number,
     required: [true, 'Duração é obrigatória'],
-    min: [15, 'Duração mínima é 15 minutos'],
+    min: [5, 'Duração mínima é 5 minutos'],
     max: [480, 'Duração máxima é 8 horas']
   },
   price: {
@@ -31,18 +31,7 @@ const tenantServiceSchema = new mongoose.Schema({
   category: {
     type: String,
     required: [true, 'Categoria é obrigatória'],
-    enum: [
-      'corte_cabelo',
-      'coloracao',
-      'tratamento_capilar',
-      'manicure_pedicure',
-      'sobrancelha',
-      'depilacao',
-      'limpeza_pele',
-      'massagem',
-      'maquiagem',
-      'outros'
-    ]
+    trim: true
   },
   imageUrl: {
     type: String,

@@ -1,6 +1,5 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
-import Header from './components/Header'
 import { AuthProvider } from "./hooks/useAuth"
 import { SalonSettingsProvider } from './hooks/useSalonSettings'
 import { Toaster } from 'react-hot-toast'
@@ -27,9 +26,7 @@ function App() {
             }}
           />
 
-          <div className="min-h-screen bg-gray-50">
-            {/* O Header aparece em todas as páginas */}
-            <Header />
+          <div className="min-h-screen bg-zinc-950">
             
             <Routes>
               {/* Páginas Principais */}
