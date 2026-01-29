@@ -1,28 +1,17 @@
-import { useState, useEffect, createContext, useContext } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react'
 
-const AuthContext = createContext()
-
-// URL do teu Backend
+const AuthContext = createContext(null)
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     checkAuth()
   }, [])
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('authToken')
-    return {
-      'Content-Type': 'application/json',
-      'x-tenant': 'bella-vista', // Nome da barbearia para teste
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-    }
-  }
-
+  // Verificar se já existe token guardado ao recarregar a página
   const checkAuth = async () => {
     const token = localStorage.getItem('authToken')
     if (!token) {
@@ -32,84 +21,63 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const response = await fetch(`${API_URL}/auth/me`, {
-        headers: getAuthHeaders()
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success) {
-          setUser(data.data.user)
-          setIsAuthenticated(true)
+        headers: { 
+          'Authorization': `Bearer ${token}` 
         }
+      })
+      const data = await response.json()
+
+      if (data.success) {
+        setUser(data.data.user)
       } else {
-        // Se o token for inválido, limpa tudo
-        localStorage.removeItem('authToken')
-        setUser(null)
-        setIsAuthenticated(false)
+        localStorage.removeItem('authToken') // Token inválido
       }
     } catch (error) {
-      console.error('Erro ao verificar autenticação:', error)
+      console.error('Erro ao verificar auth:', error)
+      localStorage.removeItem('authToken')
     } finally {
       setLoading(false)
     }
   }
 
+  // Função de Login Real
   const signIn = async (email, password) => {
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
-        headers: {
+        headers: { 
           'Content-Type': 'application/json',
-          'x-tenant': 'bella-vista'
+          'x-tenant': 'bella-vista' // Identifica a barbearia
         },
         body: JSON.stringify({ email, password })
       })
 
       const data = await response.json()
 
-      if (!data.success) {
-        throw new Error(data.error || 'Erro ao fazer login')
+      if (data.success) {
+        localStorage.setItem('authToken', data.data.token)
+        setUser(data.data.user)
+        return true
+      } else {
+        throw new Error(data.error || 'Login falhou')
       }
-
-      // Guarda o token e atualiza o estado
-      localStorage.setItem('authToken', data.data.token)
-      setUser(data.data.user)
-      setIsAuthenticated(true)
-      return data.data.user
-
     } catch (error) {
-      console.error('Erro no login:', error)
       throw error
     }
   }
 
-  const signOut = async () => {
+  const signOut = () => {
     localStorage.removeItem('authToken')
     setUser(null)
-    setIsAuthenticated(false)
-  }
-
-  const value = {
-    user,
-    isAuthenticated,
-    loading,
-    signIn,
-    signOut,
-    checkAuth,
-    token: localStorage.getItem('authToken')
+    // Redireciona para a home ou faz refresh
+    window.location.href = '/' 
   }
 
   return (
-    <AuthContext.Provider value={value}>
-      {children}
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, signIn, signOut }}>
+      {!loading && children}
     </AuthContext.Provider>
   )
 }
 
-export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth deve ser usado dentro de AuthProvider')
-  }
-  return context
-}
+export const useAuth = () => useContext(AuthContext)
