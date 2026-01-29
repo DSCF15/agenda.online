@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react' // Não te esqueças de importar useEffect
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
@@ -22,9 +22,13 @@ export const useAppointments = () => {
 
   const fetchAppointments = async () => {
     setLoading(true)
+    console.log(`🔄 A carregar agenda para: ${getTenantId()}`) // Log para confirmares
     try {
       const response = await fetch(`${API_URL}/appointments`, { headers: getHeaders() })
       const data = await response.json()
+      
+      console.log('📦 Dados recebidos:', data) // Log para veres os dados
+
       if (data.success) setAppointments(data.data || [])
     } catch (error) {
       console.error(error)
@@ -33,8 +37,14 @@ export const useAppointments = () => {
     }
   }
 
+  // 👇👇👇 AQUI ESTÁ O QUE FALTAVA 👇👇👇
+  // Isto obriga o React a carregar os dados assim que a página abre
+  useEffect(() => {
+    fetchAppointments()
+  }, [])
+  // 👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆👆
+
   const createAppointment = async (appointmentData) => {
-    // Força o tenantId correto nos dados enviados
     const payload = {
       ...appointmentData,
       tenantId: getTenantId()
@@ -47,10 +57,12 @@ export const useAppointments = () => {
     })
     const data = await response.json()
     if (!data.success) throw new Error(data.error || 'Erro ao criar')
+    
+    // Opcional: Adiciona logo à lista para não precisar de refresh
+    // setAppointments(prev => [...prev, data.data]) 
     return data.data
   }
 
-  // (Mantivemos update e cancel simplificados para poupar espaço, mas funcionam igual)
   const updateAppointment = async (id, updates) => {
     await fetch(`${API_URL}/appointments/${id}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify(updates) })
     fetchAppointments()
@@ -64,7 +76,6 @@ export const useAppointments = () => {
   return { 
     appointments, loading, 
     createAppointment, fetchAppointments, updateAppointment, cancelAppointment,
-    // Função auxiliar para compatibilidade
     getAppointmentsByDate: (date) => appointments.filter(a => a.appointmentDate.startsWith(date))
   }
 }
