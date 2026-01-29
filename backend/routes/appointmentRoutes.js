@@ -143,7 +143,7 @@ router.get('/available-slots', [
 router.post('/', checkPlanLimits('appointments'), [
   body('clientName').notEmpty().isLength({ max: 100 }).withMessage('Nome do cliente é obrigatório e deve ter no máximo 100 caracteres'),
   body('clientEmail').isEmail().normalizeEmail().withMessage('Email válido é obrigatório'),
-  body('clientPhone').matches(/^\(\d{2}\)\s\d{4,5}-\d{4}$/).withMessage('Formato de telefone inválido'),
+ body('clientPhone').isLength({ min: 9 }).withMessage('Telefone deve ter pelo menos 9 dígitos'),
   body('serviceId').isMongoId().withMessage('ID do serviço inválido'),
   body('appointmentDate').isISO8601().withMessage('Data do agendamento inválida'),
   body('appointmentTime').matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Horário inválido'),

@@ -22,7 +22,7 @@ const tenantAppointmentSchema = new mongoose.Schema({
   clientPhone: {
     type: String,
     required: [true, 'Telefone do cliente é obrigatório'],
-    match: [/^\(\d{2}\)\s\d{4,5}-\d{4}$/, 'Formato de telefone inválido']
+   minlength: [9, 'Telefone deve ter pelo menos 9 dígitos']
   },
   serviceId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -221,14 +221,30 @@ tenantAppointmentSchema.statics.checkTimeConflict = function(tenantId, date, sta
 }
 
 tenantAppointmentSchema.statics.getAvailableSlots = function(tenantId, date, serviceDuration, workingHours) {
-  const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][date.getDay()]
+  // DEBUG: Para veres no terminal se o dia está a ser bem calculado
+  console.log('--- DEBUG ---')
+  console.log('Data recebida:', date)
+  console.log('Dia da semana (UTC):', date.getUTCDay())
+
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+  // CORREÇÃO: Usar getUTCDay() para garantir o dia correto
+  const dayOfWeek = days[date.getUTCDay()] 
   const dayConfig = workingHours[dayOfWeek]
   
-  if (!dayConfig?.isOpen) return []
+  console.log('A verificar dia:', dayOfWeek)
+
+  if (!dayConfig || !dayConfig.isOpen) {
+    console.log('Fechado neste dia.')
+    return []
+  }
   
+  // Lógica de busca mantém-se, mas garantimos as datas UTC
   return this.find({
     tenantId,
-    appointmentDate: date,
+    appointmentDate: {
+      $gte: new Date(date.setUTCHours(0,0,0,0)),
+      $lt: new Date(date.setUTCHours(23,59,59,999))
+    },
     status: { $in: ['agendado', 'confirmado', 'em_andamento'] }
   }).then(appointments => {
     const slots = []
@@ -238,27 +254,28 @@ tenantAppointmentSchema.statics.getAvailableSlots = function(tenantId, date, ser
     let currentHour = openTime[0]
     let currentMinute = openTime[1]
     
-    while (currentHour < closeTime[0] || (currentHour === closeTime[0] && currentMinute < closeTime[1])) {
+    const closingTimeInMinutes = closeTime[0] * 60 + closeTime[1]
+    
+    while (true) {
+      const currentTotalMinutes = currentHour * 60 + currentMinute
+      if (currentTotalMinutes + serviceDuration > closingTimeInMinutes) break;
+
       const timeString = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`
       
-      // Verificar conflitos
-      const hasConflict = appointments.some(apt => 
-        timeString >= apt.appointmentTime && timeString < apt.appointmentEndTime
-      )
+      const hasConflict = appointments.some(apt => timeString === apt.appointmentTime)
       
       if (!hasConflict) {
         slots.push(timeString)
       }
       
-      // Avançar baseado na duração do serviço (mínimo 30 min)
+      // Incremento
       const slotDuration = Math.max(30, serviceDuration)
       currentMinute += slotDuration
       if (currentMinute >= 60) {
+        currentHour += Math.floor(currentMinute / 60)
         currentMinute = currentMinute % 60
-        currentHour += Math.floor((currentMinute + slotDuration) / 60)
       }
     }
-    
     return slots
   })
 }

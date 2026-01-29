@@ -324,7 +324,11 @@ const handleCreateTestService = async () => {
                           <Edit size={16} />
                         </button>
                         <button 
-                          onClick={() => deleteService(service._id)}
+                          onClick={() => {
+    if (window.confirm('Tem a certeza que deseja apagar este serviço?')) {
+      deleteService(service._id)
+    }
+  }}
                           className="text-gray-400 hover:text-red-600"
                         >
                           <Trash2 size={16} />
