@@ -2,30 +2,41 @@ import React, { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useAppointments } from '../hooks/useAppointments'
 import { useServices } from '../hooks/useServices'
-import {Calendar, Users, Settings, Plus, Edit, Trash2, Eye} from 'lucide-react'
+import { Calendar, Users, Settings, Plus, Edit, Trash2, Eye, LogOut } from 'lucide-react'
 
 const Admin = () => {
-  const { user, isAuthenticated } = useAuth()
-  // Usa o 'cancelAppointment' do hook
+  // Hooks de Autenticação e Dados
+  const { user, isAuthenticated, signIn, signOut } = useAuth()
   const { appointments, loading: appointmentsLoading, updateAppointment, cancelAppointment } = useAppointments()
   const { services, loading: servicesLoading, createService, updateService, deleteService } = useServices()
+
+  // Estados do Dashboard
   const [activeTab, setActiveTab] = useState('appointments')
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // ... (verificação de admin está igual) ...
-  if (!isAuthenticated || user?.userRole !== 'ADMIN') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Acesso Negado</h1>
-          <p className="text-gray-600">Você precisa ser um administrador para acessar esta página.</p>
-        </div>
-      </div>
-    )
+  // Estados do Formulário de Login
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loginError, setLoginError] = useState('')
+  const [loginLoading, setLoginLoading] = useState(false)
+
+  // --- LÓGICA DE LOGIN ---
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    setLoginError('')
+    setLoginLoading(true)
+    try {
+      await signIn(email, password)
+      // O estado isAuthenticated muda automaticamente e renderiza o dashboard
+    } catch (err) {
+      setLoginError('Login falhou. Verifica as credenciais.')
+    } finally {
+      setLoginLoading(false)
+    }
   }
 
-
+  // --- LÓGICA DO DASHBOARD ---
   const handleAppointmentStatusChange = async (appointmentId, newStatus) => {
     try {
       await updateAppointment(appointmentId, { status: newStatus })
@@ -34,19 +45,17 @@ const Admin = () => {
     }
   }
 
-  // Atualizado para usar a nova função
   const handleCancelAppointment = async (appointmentId) => {
     if (window.confirm('Tem certeza que deseja cancelar este agendamento?')) {
       try {
-        await cancelAppointment(appointmentId) // <-- MUDANÇA AQUI
+        await cancelAppointment(appointmentId)
       } catch (error) {
         console.error('Erro ao cancelar agendamento:', error)
       }
     }
   }
-  
-  // ... (getStatusColor e tabs estão iguais) ...
-    const getStatusColor = (status) => {
+
+  const getStatusColor = (status) => {
     switch (status) {
       case 'agendado': return 'bg-blue-100 text-blue-800'
       case 'confirmado': return 'bg-green-100 text-green-800'
@@ -61,18 +70,126 @@ const Admin = () => {
     { id: 'services', name: 'Serviços', icon: Settings },
     { id: 'customers', name: 'Clientes', icon: Users }
   ]
+  // Função temporária para testar a criação na Base de Dados
+const handleCreateTestService = async () => {
+  const confirm = window.confirm("Queres criar um 'Corte de Teste' automático?")
+  if (!confirm) return;
 
+  try {
+    await createService({
+      name: "Corte Degradê (Teste)",
+      description: "Corte moderno com acabamento na navalha.",
+      duration: 45,
+      price: 15.00,
+      category: "corte_cabelo",
+      active: true
+    })
+    alert("✅ Serviço criado com sucesso! Verifica a lista.")
+  } catch (error) {
+    alert("❌ Erro ao criar: " + error.message)
+  }
+}
+  // === RENDERIZAÇÃO ===
 
+  // 1. Se NÃO estiver autenticado -> Mostra Formulário de Login
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
+          <div>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+              Área Administrativa
+            </h2>
+            <p className="mt-2 text-center text-sm text-gray-600">
+              Gestão da Barbearia
+            </p>
+          </div>
+          <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+            <div className="rounded-md shadow-sm space-y-4">
+              <div>
+                <label className="sr-only">Email</label>
+                <input
+                  type="email"
+                  required
+                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                  placeholder="Email de Admin"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="sr-only">Senha</label>
+                <input
+                  type="password"
+                  required
+                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                  placeholder="Senha"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {loginError && (
+              <div className="text-red-500 text-sm text-center bg-red-50 p-2 rounded">
+                {loginError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loginLoading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+            >
+              {loginLoading ? 'A entrar...' : 'Entrar'}
+            </button>
+            
+            <div className="text-center text-xs text-gray-400 mt-4">
+              <p>Credenciais de Teste:</p>
+              <p>admin@admin.com / 123456</p>
+            </div>
+          </form>
+        </div>
+      </div>
+    )
+  }
+
+  // 2. Se estiver logado mas NÃO for admin (Segurança extra)
+  // Nota: Verifiquei que o backend envia 'admin' (minúsculo), ajustei aqui.
+  if (user?.role !== 'admin' && user?.userRole !== 'ADMIN') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center p-8 bg-white rounded-lg shadow">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Acesso Negado</h1>
+          <p className="text-gray-600 mb-4">A sua conta não tem permissões de administrador.</p>
+          <button onClick={signOut} className="text-purple-600 hover:text-purple-800 font-medium">
+            Voltar ao Login
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // 3. Se for ADMIN -> Mostra o Dashboard
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header (sem mudanças) ... */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Painel Administrativo</h1>
-          <p className="text-gray-600">Gerencie agendamentos, serviços e clientes</p>
+        {/* Header do Dashboard */}
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Painel Administrativo</h1>
+            <p className="text-gray-600">Bem-vindo, {user?.name}</p>
+          </div>
+          <button 
+            onClick={signOut}
+            className="flex items-center space-x-2 text-gray-600 hover:text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 transition-colors"
+          >
+            <LogOut size={20} />
+            <span>Sair</span>
+          </button>
         </div>
 
-        {/* Tabs (sem mudanças) ... */}
+        {/* Tabs de Navegação */}
         <div className="border-b border-gray-200 mb-8">
           <nav className="-mb-px flex space-x-8">
             {tabs.map((tab) => {
@@ -95,7 +212,9 @@ const Admin = () => {
           </nav>
         </div>
 
-        {/* Appointments Tab */}
+        {/* Conteúdo das Abas */}
+        
+        {/* TAB: Agendamentos */}
         {activeTab === 'appointments' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -103,7 +222,6 @@ const Admin = () => {
             </div>
 
             {appointmentsLoading ? (
-              // ... (loading spinner) ...
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
               </div>
@@ -113,7 +231,6 @@ const Admin = () => {
                   {appointments.map((appointment) => (
                     <li key={appointment._id} className="px-6 py-4">
                       <div className="flex items-center justify-between">
-                        {/* ... (detalhes do agendamento) ... */}
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <p className="text-lg font-medium text-gray-900">
@@ -124,23 +241,13 @@ const Admin = () => {
                             </span>
                           </div>
                           <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-                            <div>
-                              <strong>Serviço:</strong> {appointment.serviceName}
-                            </div>
-                            <div>
-                              <strong>Data:</strong> {new Date(appointment.appointmentDate).toLocaleDateString('pt-BR')}
-                            </div>
-                            <div>
-                              <strong>Horário:</strong> {appointment.appointmentTime}
-                            </div>
+                            <div><strong>Serviço:</strong> {appointment.serviceName}</div>
+                            <div><strong>Data:</strong> {new Date(appointment.appointmentDate).toLocaleDateString('pt-BR')}</div>
+                            <div><strong>Horário:</strong> {appointment.appointmentTime}</div>
                           </div>
                           <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                            <div>
-                              <strong>Telefone:</strong> {appointment.clientPhone}
-                            </div>
-                            <div>
-                              <strong>Email:</strong> {appointment.clientEmail}
-                            </div>
+                            <div><strong>Telefone:</strong> {appointment.clientPhone}</div>
+                            <div><strong>Email:</strong> {appointment.clientEmail}</div>
                           </div>
                           {appointment.notes && (
                             <div className="mt-2 text-sm text-gray-600">
@@ -150,7 +257,6 @@ const Admin = () => {
                         </div>
                         
                         <div className="flex items-center space-x-2 ml-4">
-                          {/* ... (botões de status) ... */}
                           {appointment.status === 'agendado' && (
                             <button
                               onClick={() => handleAppointmentStatusChange(appointment._id, 'confirmado')}
@@ -167,11 +273,9 @@ const Admin = () => {
                               Concluir
                             </button>
                           )}
-
-                          {/* Botão de Cancelar atualizado */}
                           {appointment.status !== 'cancelado' && appointment.status !== 'concluido' && (
                             <button
-                              onClick={() => handleCancelAppointment(appointment._id)} // <-- MUDANÇA AQUI
+                              onClick={() => handleCancelAppointment(appointment._id)}
                               className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
                             >
                               Cancelar
@@ -193,12 +297,13 @@ const Admin = () => {
           </div>
         )}
 
-        {/* Services Tab (sem mudanças) ... */}
+        {/* TAB: Serviços */}
         {activeTab === 'services' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-semibold text-gray-900">Serviços</h2>
-              <button className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center space-x-2">
+              <button onClick={handleCreateTestService}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 flex items-center space-x-2">
                 <Plus size={20} />
                 <span>Novo Serviço</span>
               </button>
@@ -218,7 +323,10 @@ const Admin = () => {
                         <button className="text-gray-400 hover:text-purple-600">
                           <Edit size={16} />
                         </button>
-                        <button className="text-gray-400 hover:text-red-600">
+                        <button 
+                          onClick={() => deleteService(service._id)}
+                          className="text-gray-400 hover:text-red-600"
+                        >
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -253,8 +361,7 @@ const Admin = () => {
           </div>
         )}
 
-
-        {/* Customers Tab (sem mudanças) ... */}
+        {/* TAB: Clientes */}
         {activeTab === 'customers' && (
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold text-gray-900">Clientes</h2>

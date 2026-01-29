@@ -1,25 +1,37 @@
 import { useState, useEffect } from 'react'
-import { lumi } from '../lib/lumi'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 export const useAppointments = () => {
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  const getHeaders = () => {
+    const token = localStorage.getItem('authToken')
+    return {
+      'Content-Type': 'application/json',
+      'x-tenant': 'bella-vista',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    }
+  }
+
   useEffect(() => {
-    // Nota: Isto SÓ deve ser chamado na página de Admin.
-    // Se não estivermos no Admin, nem devia correr.
+    // Busca inicial (pode ser ajustada para só correr se for admin)
     fetchAppointments()
   }, [])
 
-  // Esta função é PESADA. Só o Admin a deve usar.
   const fetchAppointments = async () => {
     try {
       setLoading(true)
-      const { list } = await lumi.entities.appointments.list({
-        orderBy: { appointmentDate: 'desc' }
+      const response = await fetch(`${API_URL}/appointments`, {
+        headers: getHeaders()
       })
-      setAppointments(list || [])
+      const data = await response.json()
+
+      if (data.success) {
+        setAppointments(data.data || [])
+      }
     } catch (err) {
       console.error('Erro ao buscar agendamentos:', err)
       setError(err.message)
@@ -28,20 +40,20 @@ export const useAppointments = () => {
     }
   }
 
-  /* Esta função é INSEGURA e LENTA.
-   O ideal é chamar uma Função Lumi (backend) para fazer isto.
-   ex: lumi.functions.execute('createSecureAppointment', appointmentData)
-  */
   const createAppointment = async (appointmentData) => {
     try {
-      const newAppointment = await lumi.entities.appointments.create({
-        ...appointmentData,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+      const response = await fetch(`${API_URL}/appointments`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(appointmentData)
       })
+
+      const data = await response.json()
+      if (!data.success) throw new Error(data.error || data.message)
       
-      setAppointments(prev => [newAppointment, ...prev])
-      return newAppointment
+      // Adiciona à lista local apenas se tivermos sucesso
+      setAppointments(prev => [data.data, ...prev])
+      return data.data
     } catch (error) {
       console.error('Erro ao criar agendamento:', error)
       throw error
@@ -50,37 +62,52 @@ export const useAppointments = () => {
 
   const updateAppointment = async (appointmentId, updates) => {
     try {
-      const updatedAppointment = await lumi.entities.appointments.update(appointmentId, {
-        ...updates,
-        updatedAt: new Date().toISOString()
+      const response = await fetch(`${API_URL}/appointments/${appointmentId}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(updates)
       })
-      
+
+      const data = await response.json()
+      if (!data.success) throw new Error(data.error)
+
       setAppointments(prev => prev.map(appointment => 
-        appointment._id === appointmentId ? updatedAppointment : appointment
+        appointment._id === appointmentId ? data.data : appointment
       ))
-      return updatedAppointment
+      return data.data
     } catch (error) {
       console.error('Erro ao atualizar agendamento:', error)
       throw error
     }
   }
 
-  // Renomeado para ser mais claro. Em vez de apagar, cancelamos.
-  const cancelAppointment = async (appointmentId) => {
+  const cancelAppointment = async (appointmentId, reason = 'Cancelado pelo utilizador') => {
     try {
-      return await updateAppointment(appointmentId, { status: 'cancelado' })
+      const response = await fetch(`${API_URL}/appointments/${appointmentId}/cancel`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({ reason, cancelledBy: 'client' })
+      })
+
+      const data = await response.json()
+      if (!data.success) throw new Error(data.error)
+
+      // Atualiza a lista local
+      setAppointments(prev => prev.map(appointment => 
+        appointment._id === appointmentId ? data.data : appointment
+      ))
+      
+      return data.data
     } catch (error) {
       console.error('Erro ao cancelar agendamento:', error)
       throw error
     }
   }
 
-  // Esta função NUNCA devia estar no frontend.
-  // const getAvailableTimeSlots = (...) => { ... } // REMOVIDO!
-
-  // Funções de filtragem (OK para o Admin)
   const getAppointmentsByDate = (date) => {
-    return appointments.filter(apt => apt.appointmentDate === date)
+    // Nota: O backend retorna datas completas ISO. A comparação aqui pode precisar de ajustes
+    // dependendo de como 'date' vem do frontend (string YYYY-MM-DD vs Date object)
+    return appointments.filter(apt => apt.appointmentDate.startsWith(date))
   }
 
   const getAppointmentsByStatus = (status) => {
@@ -93,7 +120,7 @@ export const useAppointments = () => {
     error,
     createAppointment,
     updateAppointment,
-    cancelAppointment, // Nome mudado
+    cancelAppointment,
     getAppointmentsByDate,
     getAppointmentsByStatus,
     refetch: fetchAppointments

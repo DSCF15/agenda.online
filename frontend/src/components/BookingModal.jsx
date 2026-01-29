@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import {X, Calendar, Clock, User, Phone, Mail, MessageSquare} from 'lucide-react'
-// IMPORTA O 'lumi' e o 'useAppointments' SEPARADAMENTE
-import { lumi } from '../lib/lumi' 
-import { useAppointments } from '../hooks/useAppointments' // Só para o create
+import { X, Calendar, Clock, User, Phone, Mail, MessageSquare } from 'lucide-react'
+import { useAppointments } from '../hooks/useAppointments'
 import { format, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
+// URL da API (Backend)
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+
 const BookingModal = ({ service, isOpen, onClose }) => {
-  // Vamos usar o 'createAppointment' do hook (embora devesse ser uma função de backend)
-  // Mas NUNCA vamos usar o hook todo, para não descarregar os agendamentos todos.
-  const { createAppointment } = useAppointments() 
+  const { createAppointment } = useAppointments()
   
   const [formData, setFormData] = useState({
     clientName: '',
@@ -20,13 +19,12 @@ const BookingModal = ({ service, isOpen, onClose }) => {
     notes: ''
   })
 
-  const [loading, setLoading] = useState(false) // Loading do submit
-  const [loadingSlots, setLoadingSlots] = useState(false) // Loading dos horários
+  const [loading, setLoading] = useState(false)
+  const [loadingSlots, setLoadingSlots] = useState(false)
   const [selectedDate, setSelectedDate] = useState('')
-  const [availableTimeSlots, setAvailableTimeSlots] = useState([]) // Estado local
+  const [availableTimeSlots, setAvailableTimeSlots] = useState([])
   const [error, setError] = useState('')
 
-  // Limpa o formulário sempre que o modal abre
   useEffect(() => {
     if (isOpen) {
       setError('')
@@ -39,10 +37,8 @@ const BookingModal = ({ service, isOpen, onClose }) => {
     }
   }, [isOpen])
 
-
   if (!isOpen || !service) return null
 
-  // Gerar os próximos 14 dias
   const getAvailableDates = () => {
     const dates = []
     for (let i = 0; i < 14; i++) {
@@ -58,7 +54,7 @@ const BookingModal = ({ service, isOpen, onClose }) => {
 
   const availableDates = getAvailableDates()
 
-  // Esta função agora chama o BACKEND
+  // --- MUDANÇA PRINCIPAL AQUI ---
   const handleDateChange = async (date) => {
     setSelectedDate(date)
     setFormData(prev => ({ ...prev, appointmentDate: date, appointmentTime: '' }))
@@ -67,19 +63,26 @@ const BookingModal = ({ service, isOpen, onClose }) => {
     setError('')
 
     try {
-      /**
-       * AQUI! Tens de criar uma Função Lumi chamada 'getAvailableSlots'
-       * que recebe a data e a duração e devolve os horários livres.
-       */
-      const slots = await lumi.functions.execute('getAvailableSlots', {
-        date: date,
-        serviceDuration: service.duration
+      // Pedido ao TEU backend em vez da Lumi
+      const response = await fetch(`${API_URL}/appointments/available-slots?date=${date}&serviceId=${service._id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant': 'bella-vista' // Identifica a barbearia
+        }
       })
       
-      setAvailableTimeSlots(slots || [])
+      const data = await response.json()
+
+      if (data.success && data.data && data.data.availableSlots) {
+        setAvailableTimeSlots(data.data.availableSlots)
+      } else {
+         // Se não houver slots ou der erro silencioso, assumimos array vazio
+         setAvailableTimeSlots([]) 
+      }
+
     } catch (err) {
       console.error("Erro ao buscar horários:", err)
-      setError("Não foi possível carregar os horários para esta data.")
+      setError("Não foi possível carregar os horários. Tente novamente.")
     } finally {
       setLoadingSlots(false)
     }
@@ -96,17 +99,18 @@ const BookingModal = ({ service, isOpen, onClose }) => {
         serviceId: service._id,
         serviceName: service.name,
         servicePrice: service.price,
+        serviceDuration: service.duration, // Importante enviar a duração
         status: 'agendado'
       })
+      alert("✅ Agendamento realizado com sucesso!")
       onClose()
     } catch (error) {
       console.error('Erro ao criar agendamento:', error)
-      setError(error.message || 'Esse horário já não está disponível.')
+      setError(error.message || 'Erro ao realizar agendamento.')
     } finally {
       setLoading(false)
     }
   }
-
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -130,7 +134,7 @@ const BookingModal = ({ service, isOpen, onClose }) => {
               <span className="text-gray-700">{service.duration} minutos</span>
             </div>
             <div className="text-2xl font-bold text-pink-600">
-              R$ {service.price.toFixed(2)}
+              € {service.price.toFixed(2)}
             </div>
           </div>
         </div>
@@ -175,7 +179,7 @@ const BookingModal = ({ service, isOpen, onClose }) => {
             </div>
           </div>
 
-          {/* Time Selection (com loading) */}
+          {/* Time Selection */}
           {selectedDate && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
@@ -197,9 +201,9 @@ const BookingModal = ({ service, isOpen, onClose }) => {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <p>Não há horários disponíveis para esta data.</p>
-                  <p className="text-sm">Tente selecionar outra data.</p>
+                <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="font-medium text-gray-700">Não há horários disponíveis.</p>
+                  <p className="text-sm">A barbearia pode estar fechada neste dia ou todos os horários já estão ocupados.</p>
                 </div>
               )}
             </div>
@@ -211,27 +215,25 @@ const BookingModal = ({ service, isOpen, onClose }) => {
               <MessageSquare size={20} className="text-purple-600" />
               <span>Observações (Opcional)</span>
             </h3>
-            <textarea value={formData.notes} onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors" rows={3} placeholder="Alguma observação especial para o seu atendimento..."/>
+            <textarea value={formData.notes} onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors" rows={3} placeholder="Alguma observação especial..."/>
           </div>
 
-          {/* Mensagem de Erro */}
           {error && (
-            <div className="text-center text-red-600 text-sm font-medium">
+            <div className="text-center text-red-600 text-sm font-medium bg-red-50 p-2 rounded">
               {error}
             </div>
           )}
 
-          {/* Submit Button */}
           <div className="flex space-x-4 pt-6">
             <button type="button" onClick={onClose} className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={loading || loadingSlots || !formData.clientName || !formData.clientEmail || !formData.clientPhone || !formData.appointmentDate || !formData.appointmentTime}
+              disabled={loading || loadingSlots || !formData.clientName || !formData.appointmentTime}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:opacity-90 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Agendando...' : 'Confirmar Agendamento'}
+              {loading ? 'A processar...' : 'Confirmar'}
             </button>
           </div>
         </form>

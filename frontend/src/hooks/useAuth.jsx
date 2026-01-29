@@ -1,8 +1,9 @@
-
-    import { useState, useEffect, createContext, useContext } from 'react'
-import { lumi } from '../lib/lumi'
+import { useState, useEffect, createContext, useContext } from 'react'
 
 const AuthContext = createContext()
+
+// URL do teu Backend
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
@@ -13,12 +14,38 @@ export const AuthProvider = ({ children }) => {
     checkAuth()
   }, [])
 
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('authToken')
+    return {
+      'Content-Type': 'application/json',
+      'x-tenant': 'bella-vista', // Nome da barbearia para teste
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    }
+  }
+
   const checkAuth = async () => {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      setLoading(false)
+      return
+    }
+
     try {
-      const currentUser = await lumi.auth.getCurrentUser()
-      if (currentUser) {
-        setUser(currentUser)
-        setIsAuthenticated(true)
+      const response = await fetch(`${API_URL}/auth/me`, {
+        headers: getAuthHeaders()
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          setUser(data.data.user)
+          setIsAuthenticated(true)
+        }
+      } else {
+        // Se o token for inválido, limpa tudo
+        localStorage.removeItem('authToken')
+        setUser(null)
+        setIsAuthenticated(false)
       }
     } catch (error) {
       console.error('Erro ao verificar autenticação:', error)
@@ -27,14 +54,29 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const signIn = async () => {
+  const signIn = async (email, password) => {
     try {
-      const result = await lumi.auth.signIn()
-      if (result) {
-        setUser(result)
-        setIsAuthenticated(true)
-        return result
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant': 'bella-vista'
+        },
+        body: JSON.stringify({ email, password })
+      })
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || 'Erro ao fazer login')
       }
+
+      // Guarda o token e atualiza o estado
+      localStorage.setItem('authToken', data.data.token)
+      setUser(data.data.user)
+      setIsAuthenticated(true)
+      return data.data.user
+
     } catch (error) {
       console.error('Erro no login:', error)
       throw error
@@ -42,13 +84,9 @@ export const AuthProvider = ({ children }) => {
   }
 
   const signOut = async () => {
-    try {
-      await lumi.auth.signOut()
-      setUser(null)
-      setIsAuthenticated(false)
-    } catch (error) {
-      console.error('Erro no logout:', error)
-    }
+    localStorage.removeItem('authToken')
+    setUser(null)
+    setIsAuthenticated(false)
   }
 
   const value = {
@@ -57,7 +95,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     signIn,
     signOut,
-    checkAuth
+    checkAuth,
+    token: localStorage.getItem('authToken')
   }
 
   return (
@@ -74,4 +113,3 @@ export const useAuth = () => {
   }
   return context
 }
-    

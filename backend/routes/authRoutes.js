@@ -1,4 +1,3 @@
-
 import express from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
@@ -6,8 +5,29 @@ import { body, validationResult } from 'express-validator'
 
 const router = express.Router()
 
-// Simulação de usuários admin (em produção, usar banco de dados)
+// Simulação de usuários admin
 const adminUsers = new Map()
+
+// === ADICIONAR UTILIZADOR PADRÃO ===
+// Cria um admin: admin@admin.com / senha: 123456
+const createDefaultUser = () => {
+  const salt = bcrypt.genSaltSync(10)
+  const hash = bcrypt.hashSync('123456', salt)
+  const defaultKey = 'bella-vista:admin@admin.com'
+  
+  adminUsers.set(defaultKey, {
+    id: 'admin-default',
+    email: 'admin@admin.com',
+    name: 'Admin Local',
+    password: hash,
+    tenantId: 'bella-vista',
+    role: 'admin',
+    createdAt: new Date()
+  })
+  console.log('👤 Utilizador Admin criado: admin@admin.com / 123456')
+}
+createDefaultUser()
+// ===================================
 
 // Middleware para validar erros
 const handleValidationErrors = (req, res, next) => {
@@ -46,77 +66,6 @@ export const authenticateToken = (req, res, next) => {
   })
 }
 
-// POST /api/auth/register - Registrar admin do tenant
-router.post('/register', [
-  body('email').isEmail().normalizeEmail().withMessage('Email válido é obrigatório'),
-  body('password').isLength({ min: 6 }).withMessage('Senha deve ter pelo menos 6 caracteres'),
-  body('name').notEmpty().withMessage('Nome é obrigatório')
-], handleValidationErrors, async (req, res) => {
-  try {
-    const { email, password, name } = req.body
-    const tenantId = req.tenant.subdomain
-    
-    // Verificar se já existe admin para este tenant
-    const userKey = `${tenantId}:${email}`
-    if (adminUsers.has(userKey)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Usuário já existe'
-      })
-    }
-    
-    // Hash da senha
-    const saltRounds = 10
-    const hashedPassword = await bcrypt.hash(password, saltRounds)
-    
-    // Criar usuário
-    const user = {
-      id: Date.now().toString(),
-      email,
-      name,
-      password: hashedPassword,
-      tenantId,
-      role: 'admin',
-      createdAt: new Date()
-    }
-    
-    adminUsers.set(userKey, user)
-    
-    // Gerar token
-    const token = jwt.sign(
-      { 
-        userId: user.id, 
-        email: user.email, 
-        tenantId, 
-        role: user.role 
-      },
-      process.env.JWT_SECRET || 'salon-booking-secret',
-      { expiresIn: '24h' }
-    )
-    
-    res.status(201).json({
-      success: true,
-      data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          tenantId
-        },
-        token
-      },
-      message: 'Usuário criado com sucesso'
-    })
-  } catch (error) {
-    console.error('Erro ao registrar usuário:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor'
-    })
-  }
-})
-
 // POST /api/auth/login - Login do admin
 router.post('/login', [
   body('email').isEmail().normalizeEmail().withMessage('Email válido é obrigatório'),
@@ -126,7 +75,7 @@ router.post('/login', [
     const { email, password } = req.body
     const tenantId = req.tenant.subdomain
     
-    // Buscar usuário
+    // Buscar usuário na memória
     const userKey = `${tenantId}:${email}`
     const user = adminUsers.get(userKey)
     
@@ -188,14 +137,6 @@ router.get('/me', authenticateToken, (req, res) => {
     data: {
       user: req.user
     }
-  })
-})
-
-// POST /api/auth/logout - Logout (invalidar token no frontend)
-router.post('/logout', authenticateToken, (req, res) => {
-  res.json({
-    success: true,
-    message: 'Logout realizado com sucesso'
   })
 })
 

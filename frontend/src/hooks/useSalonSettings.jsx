@@ -1,7 +1,7 @@
 import { useState, useEffect, createContext, useContext } from 'react'
-import { lumi } from '../lib/lumi'
 
 const SalonSettingsContext = createContext()
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 export const SalonSettingsProvider = ({ children }) => {
   const [settings, setSettings] = useState(null)
@@ -12,19 +12,37 @@ export const SalonSettingsProvider = ({ children }) => {
     const fetchSettings = async () => {
       try {
         setLoading(true)
-        // Vamos assumir que só tens UMA configuração de salão
-        const { list } = await lumi.entities.salon_settings.list({ limit: 1 })
         
-        if (list && list.length > 0) {
-          setSettings(list[0])
-        } else {
-          // Fallback se nada estiver configurado no admin
+        const response = await fetch(`${API_URL}/tenants/current`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-tenant': 'bella-vista' // Identifica a barbearia
+          }
+        })
+        
+        const data = await response.json()
+        
+        if (data.success) {
+          // Mapeia os dados do Backend para o formato que o Frontend espera
+          const tenant = data.data
           setSettings({
-            name: "Nail Art ByFran",
-            address: "Rua Exemplo, 123, Cidade, País",
-            phone: "929237136",
-            email: "franciskov@gmail.com",
-            workingHours: { /* ... */ }
+            name: tenant.businessName,
+            address: `${tenant.businessAddress.street}, ${tenant.businessAddress.city}`,
+            phone: tenant.businessPhone,
+            email: tenant.businessEmail,
+            workingHours: tenant.workingHours,
+            branding: tenant.branding,
+            // Mantém o objeto completo caso precises de mais dados
+            raw: tenant 
+          })
+        } else {
+          // Fallback se der erro
+          console.warn('Usando configurações fallback')
+          setSettings({
+            name: "Barbearia Demo",
+            address: "Rua Exemplo, Porto",
+            phone: "910000000",
+            email: "demo@barbearia.com"
           })
         }
       } catch (err) {
