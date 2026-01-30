@@ -1,0 +1,15 @@
+/* CalendarDark.css */
+.rbc-calendar { color: #e4e4e7; } /* Texto claro */
+.rbc-off-range-bg { background: #09090b !important; } /* Fundo dias fora */
+.rbc-header { border-bottom: 1px solid #27272a !important; }
+.rbc-month-view, .rbc-time-view, .rbc-agenda-view { border: 1px solid #27272a !important; background: #18181b; }
+.rbc-day-bg { border-left: 1px solid #27272a !important; }
+.rbc-time-content { border-top: 1px solid #27272a !important; }
+.rbc-time-header-content { border-left: 1px solid #27272a !important; }
+.rbc-timeslot-group { border-bottom: 1px solid #27272a !important; }
+.rbc-time-gutter .rbc-timeslot-group { border-right: 1px solid #27272a !important; }
+.rbc-today { background-color: #27272a !important; } /* Dia de hoje */
+.rbc-event { background-color: #eab308 !important; color: black !important; border-radius: 4px; border: none !important; }
+.rbc-toolbar button { color: #eab308; border: 1px solid #3f3f46 !important; }
+.rbc-toolbar button:hover { background-color: #27272a; }
+.rbc-toolbar button.rbc-active { background-color: #eab308; color: black; }

@@ -4,6 +4,7 @@ import { AuthProvider } from "./hooks/useAuth"
 import { SalonSettingsProvider } from './hooks/useSalonSettings'
 import { Toaster } from 'react-hot-toast'
 
+import ConfirmAppointment from './pages/ConfirmAppointment'
 import Admin from './pages/Admin'
 import Home from './pages/Home'
 
@@ -32,7 +33,7 @@ function App() {
               {/* Páginas Principais */}
               <Route path="/home" element={<Home />} />
               <Route path="/admin" element={<Admin />} />
-              
+              <Route path="/confirm/:token" element={<ConfirmAppointment />} />
               {/* Redirecionamentos de Segurança */}
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="*" element={<Navigate to="/home" replace />} />

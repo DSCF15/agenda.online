@@ -30,37 +30,40 @@ app.use(morgan('combined'))
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // máximo 100 requests por IP
+  windowMs: 15 * 60 * 1000, 
+  max: 100, 
   message: 'Muitas tentativas. Tente novamente em 15 minutos.'
 })
 app.use(limiter)
 
-// CORS configuração - IMPORTANTE: Ajustado para aceitar qualquer origem em dev ou a específica
+// CORS
 app.use(cors({
-  origin: true, // Permite que o frontend (localhost:5173 ou outro) aceda
+  origin: true, 
   credentials: true
 }))
 
-// Body parsing
+// Body parsing (ESSENCIAL PARA LER O TOKEN)
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-// Middleware de detecção de tenant
-app.use(tenantDetectionMiddleware)
+// --- ROTAS ---
 
-// Rotas
 app.use('/api/auth', authRoutes)
-app.use('/api/tenants', tenantRoutes)
-app.use('/api/services', serviceRoutes)
+
+// Aplicamos o middleware de tenant manualmente APENAS onde é obrigatório:
+app.use('/api/tenants', tenantDetectionMiddleware, tenantRoutes)
+app.use('/api/services', tenantDetectionMiddleware, serviceRoutes)
+
+// 🚨 AQUI ESTÁ A CORREÇÃO:
+// Não colocamos o middleware aqui. O ficheiro appointmentRoutes.js gere o seu próprio middleware.
+// Isto permite que a rota /verify seja pública!
 app.use('/api/appointments', appointmentRoutes)
 
 // Rota de health check
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
-    timestamp: new Date().toISOString(),
-    tenant: req.tenant?.subdomain || 'none'
+    timestamp: new Date().toISOString()
   })
 })
 
