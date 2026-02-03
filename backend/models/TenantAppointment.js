@@ -16,17 +16,14 @@ const tenantAppointmentSchema = new mongoose.Schema({
   serviceDuration: Number,
   
   appointmentDate: {
-    type: String, // Formato YYYY-MM-DD
+    type: String, // YYYY-MM-DD
     required: true
   },
   appointmentTime: {
-    type: String, // Formato HH:mm
+    type: String, // HH:mm
     required: true
   },
-  appointmentEndTime: {
-    type: String, // Tornámos opcional para evitar erros de validação
-    required: false 
-  },
+  appointmentEndTime: String,
   
   clientName: {
     type: String,
@@ -38,7 +35,13 @@ const tenantAppointmentSchema = new mongoose.Schema({
   status: {
     type: String,
     default: 'scheduled' 
-    // REMOVEMOS O 'enum' PARA ACEITAR QUALQUER COISA ('pendente', 'confirmado', etc.)
+    // Aceita: 'scheduled', 'pending_email', 'confirmed', 'cancelled'
+  },
+  
+  // 👇👇👇 CAMPO NOVO IMPORTANTE 👇👇👇
+  confirmationToken: {
+    type: String,
+    index: true // Indexado para a busca ser rápida
   },
   
   notes: String

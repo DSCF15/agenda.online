@@ -20,15 +20,12 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 5000
 
-// Conectar ao MongoDB
 connectDB()
 
-// Middleware de segurança
 app.use(helmet())
 app.use(compression())
 app.use(morgan('combined'))
 
-// Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
   max: 100, 
@@ -36,44 +33,38 @@ const limiter = rateLimit({
 })
 app.use(limiter)
 
-// CORS
+// CORS (Permite frontend)
 app.use(cors({
   origin: true, 
   credentials: true
 }))
 
-// Body parsing (ESSENCIAL PARA LER O TOKEN)
+// JSON Parsing (Obrigatório para ler o token)
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 
-// --- ROTAS ---
+// --- AQUI ESTÁ A CORREÇÃO CRÍTICA ---
+// Removemos o "app.use(tenantDetectionMiddleware)" global daqui!
 
+// Rotas Públicas (Auth não precisa de tenant)
 app.use('/api/auth', authRoutes)
 
-// Aplicamos o middleware de tenant manualmente APENAS onde é obrigatório:
+// Rotas Protegidas (Aplicamos o middleware manualmente nestas)
 app.use('/api/tenants', tenantDetectionMiddleware, tenantRoutes)
 app.use('/api/services', tenantDetectionMiddleware, serviceRoutes)
 
-// 🚨 AQUI ESTÁ A CORREÇÃO:
-// Não colocamos o middleware aqui. O ficheiro appointmentRoutes.js gere o seu próprio middleware.
-// Isto permite que a rota /verify seja pública!
+// Rotas Híbridas (O appointmentRoutes gere o seu próprio middleware internamente)
+// Isto permite que o /verify funcione sem bloqueios!
 app.use('/api/appointments', appointmentRoutes)
 
-// Rota de health check
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString()
-  })
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() })
 })
 
-// Middleware de tratamento de erros
 app.use(errorHandler)
 
-// Iniciar servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`)
-  console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`)
 })
 
 export default app
