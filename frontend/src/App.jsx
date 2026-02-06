@@ -4,39 +4,35 @@ import { AuthProvider } from "./hooks/useAuth"
 import { SalonSettingsProvider } from './hooks/useSalonSettings'
 import { Toaster } from 'react-hot-toast'
 
-import ConfirmAppointment from './pages/ConfirmAppointment'
 import Admin from './pages/Admin'
 import Home from './pages/Home'
+import ConfirmAppointment from './pages/ConfirmAppointment'
 
 function App() {
   return (
-    // 1. O AuthProvider envolve tudo para sabermos quem está logado
     <AuthProvider>
-      {/* 2. O SettingsProvider carrega os dados da barbearia (nome, logo, etc) */}
       <SalonSettingsProvider>
         <Router>
-          {/* 3. O Toaster fica aqui, disponível para toda a app (não envolve os outros) */}
-          <Toaster 
-            position="top-center" 
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: '#333',
-                color: '#fff',
-              },
-            }}
-          />
-
+          <Toaster position="top-center" toastOptions={{ style: { background: '#333', color: '#fbbf24' }}} />
           <div className="min-h-screen bg-zinc-950">
-            
             <Routes>
-              {/* Páginas Principais */}
-              <Route path="/home" element={<Home />} />
-              <Route path="/admin" element={<Admin />} />
+              {/* ROTA DINÂMICA: O ":tenantId" apanha qualquer coisa que escrevas no link */}
+              {/* Ex: /barbeariajc ou /zonavelhabarbershop */}
+              <Route path="/:tenantId" element={<Home />} />
+
+              {/* Rota de Confirmação (Global) */}
               <Route path="/confirm/:token" element={<ConfirmAppointment />} />
-              {/* Redirecionamentos de Segurança */}
-              <Route path="/" element={<Navigate to="/home" replace />} />
-              <Route path="*" element={<Navigate to="/home" replace />} />
+
+              {/* Rota de Admin (Podes proteger ou fazer /:tenantId/admin depois) */}
+              <Route path="/admin" element={<Admin />} />
+              
+              {/* Redirecionamento da raiz: Se alguém entrar só em agenda.online.com,
+                  mandamos para uma loja padrão ou uma landing page. 
+                  Por agora, mando para a barbeariajc */}
+              <Route path="/" element={<Navigate to="/barbeariajc" replace />} />
+              
+              {/* Qualquer outra coisa vai para a raiz */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>
         </Router>
