@@ -14,6 +14,8 @@ import tenantRoutes from './routes/tenantRoutes.js'
 import serviceRoutes from './routes/serviceRoutes.js'
 import appointmentRoutes from './routes/appointmentRoutes.js'
 import authRoutes from './routes/authRoutes.js'
+import staffRoutes from './routes/staffRoutes.js'
+import analyticsRoutes from './routes/analyticsRoutes.js'
 
 dotenv.config()
 
@@ -49,6 +51,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 // Rotas Públicas (Auth não precisa de tenant)
 app.use('/api/auth', authRoutes)
 
+app.use('/api/analytics', analyticsRoutes)
+
 // Rotas Protegidas (Aplicamos o middleware manualmente nestas)
 app.use('/api/tenants', tenantDetectionMiddleware, tenantRoutes)
 app.use('/api/services', tenantDetectionMiddleware, serviceRoutes)
@@ -56,6 +60,8 @@ app.use('/api/services', tenantDetectionMiddleware, serviceRoutes)
 // Rotas Híbridas (O appointmentRoutes gere o seu próprio middleware internamente)
 // Isto permite que o /verify funcione sem bloqueios!
 app.use('/api/appointments', appointmentRoutes)
+
+app.use('/api/staff', staffRoutes)
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() })

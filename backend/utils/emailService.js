@@ -1,142 +1,50 @@
+import { Resend } from 'resend'
+import dotenv from 'dotenv'
 
-import nodemailer from 'nodemailer'
+dotenv.config()
 
-// Configurar transporter
-const createTransporter = () => {
-  return nodemailer.createTransporter({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: process.env.SMTP_PORT || 587,
-    secure: false, // true para 465, false para outras portas
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    },
-    tls: {
-      rejectUnauthorized: false
-    }
-  })
-}
+const resend = new Resend(process.env.RESEND_API_KEY)
 
-export const sendEmail = async ({ to, subject, html, text, from, fromName }) => {
+export const sendConfirmationEmail = async (appointment, tenant) => {
   try {
-    const transporter = createTransporter()
+    const { clientName, clientEmail, serviceName, appointmentDate, appointmentTime, confirmationToken, tenantId } = appointment
     
-    const mailOptions = {
-      from: fromName ? `"${fromName}" <${from || process.env.SMTP_USER}>` : from || process.env.SMTP_USER,
-      to,
-      subject,
-      html,
-      text: text || html.replace(/<[^>]*>/g, '') // Remove HTML tags se text não fornecido
-    }
+    // Nome da Loja (Caniço ou Camacha)
+    const storeName = tenant.businessName || 'Barbearia J'
     
-    const info = await transporter.sendMail(mailOptions)
-    
-    console.log('✅ Email enviado:', info.messageId)
-    return {
-      success: true,
-      messageId: info.messageId
-    }
+    // Link para a API validar (Backend) ou para o Frontend validar
+    // Vamos apontar para o Frontend, que depois chama o Backend
+    const confirmLink = `http://localhost:5173/confirm/${confirmationToken}?tenant=${tenantId}`
+
+    await resend.emails.send({
+      from: 'Barbearia Agenda <onboarding@resend.dev>', // Usa o teu domínio verificado quando fores para produção
+      to: clientEmail,
+      subject: `🕒 Confirme o seu agendamento em ${storeName}`,
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; color: #333;">
+          <h2>Olá ${clientName}, falta pouco!</h2>
+          <p>Para garantir o seu horário na <strong>${storeName}</strong>, clique no botão abaixo nos próximos <strong>10 minutos</strong>.</p>
+          
+          <div style="background: #f4f4f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Serviço:</strong> ${serviceName}</p>
+            <p><strong>Data:</strong> ${appointmentDate} às ${appointmentTime}</p>
+          </div>
+
+          <a href="${confirmLink}" style="background-color: #EAB308; color: #000; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block;">
+            CONFIRMAR AGENDAMENTO
+          </a>
+          
+          <p style="font-size: 12px; color: #666; margin-top: 20px;">
+            Se não confirmar em 10 minutos, o horário será libertado para outros clientes.
+          </p>
+        </div>
+      `
+    })
+
+    console.log(`📨 Email Resend enviado para ${clientEmail}`)
+    return true
   } catch (error) {
-    console.error('❌ Erro ao enviar email:', error)
-    throw new Error(`Falha ao enviar email: ${error.message}`)
-  }
-}
-
-export const sendBulkEmail = async (emails) => {
-  const results = []
-  
-  for (const email of emails) {
-    try {
-      const result = await sendEmail(email)
-      results.push({ ...email, success: true, messageId: result.messageId })
-    } catch (error) {
-      results.push({ ...email, success: false, error: error.message })
-    }
-  }
-  
-  return results
-}
-
-// Templates de email
-export const emailTemplates = {
-  appointmentConfirmation: (appointment, tenant) => {
-    const appointmentDate = new Date(appointment.appointmentDate).toLocaleDateString('pt-BR')
-    
-    return {
-      subject: `Confirmação de Agendamento - ${tenant.businessName}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, ${tenant.branding.primaryColor} 0%, ${tenant.branding.secondaryColor} 100%); padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">${tenant.businessName}</h1>
-          </div>
-          
-          <div style="padding: 20px;">
-            <h2 style="color: ${tenant.branding.primaryColor};">Confirmação de Agendamento</h2>
-            
-            <p>Olá <strong>${appointment.clientName}</strong>,</p>
-            
-            <p>Seu agendamento foi confirmado com sucesso!</p>
-            
-            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="margin-top: 0; color: ${tenant.branding.primaryColor};">Detalhes do Agendamento</h3>
-              <p><strong>Serviço:</strong> ${appointment.serviceName}</p>
-              <p><strong>Data:</strong> ${appointmentDate}</p>
-              <p><strong>Horário:</strong> ${appointment.appointmentTime}</p>
-              <p><strong>Valor:</strong> R$ ${appointment.servicePrice.toFixed(2)}</p>
-              ${appointment.staffAssigned ? `<p><strong>Profissional:</strong> ${appointment.staffAssigned}</p>` : ''}
-              ${appointment.notes ? `<p><strong>Observações:</strong> ${appointment.notes}</p>` : ''}
-            </div>
-            
-            <div style="background-color: #e7f3ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
-              <h4 style="margin-top: 0; color: #0066cc;">Informações do Salão</h4>
-              <p><strong>${tenant.businessName}</strong></p>
-              <p>📍 ${tenant.businessAddress?.street}, ${tenant.businessAddress?.city}</p>
-              <p>📞 ${tenant.businessPhone}</p>
-              <p>✉️ ${tenant.businessEmail}</p>
-            </div>
-            
-            <p style="color: #666;">Por favor, chegue com 10 minutos de antecedência.</p>
-            <p style="color: #666;">Em caso de cancelamento, entre em contato conosco com pelo menos 2 horas de antecedência.</p>
-            
-            <p>Aguardamos você!</p>
-            <p><strong>Equipe ${tenant.businessName}</strong></p>
-          </div>
-        </div>
-      `
-    }
-  },
-
-  appointmentReminder: (appointment, tenant) => {
-    const appointmentDate = new Date(appointment.appointmentDate).toLocaleDateString('pt-BR')
-    
-    return {
-      subject: `Lembrete: Agendamento Amanhã - ${tenant.businessName}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, ${tenant.branding.primaryColor} 0%, ${tenant.branding.secondaryColor} 100%); padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">${tenant.businessName}</h1>
-          </div>
-          
-          <div style="padding: 20px;">
-            <h2 style="color: ${tenant.branding.primaryColor};">Lembrete de Agendamento</h2>
-            
-            <p>Olá <strong>${appointment.clientName}</strong>,</p>
-            
-            <p>Este é um lembrete do seu agendamento para amanhã:</p>
-            
-            <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
-              <h3 style="margin-top: 0; color: #856404;">Detalhes do Agendamento</h3>
-              <p><strong>Serviço:</strong> ${appointment.serviceName}</p>
-              <p><strong>Data:</strong> ${appointmentDate}</p>
-              <p><strong>Horário:</strong> ${appointment.appointmentTime}</p>
-            </div>
-            
-            <p style="color: #666;">Não se esqueça! Aguardamos você.</p>
-            
-            <p><strong>Equipe ${tenant.businessName}</strong></p>
-          </div>
-        </div>
-      `
-    }
+    console.error('❌ Erro Resend:', error)
+    return false
   }
 }
