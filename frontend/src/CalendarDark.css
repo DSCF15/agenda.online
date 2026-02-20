@@ -1,15 +1,57 @@
-/* CalendarDark.css */
-.rbc-calendar { color: #e4e4e7; } /* Texto claro */
-.rbc-off-range-bg { background: #09090b !important; } /* Fundo dias fora */
-.rbc-header { border-bottom: 1px solid #27272a !important; }
-.rbc-month-view, .rbc-time-view, .rbc-agenda-view { border: 1px solid #27272a !important; background: #18181b; }
-.rbc-day-bg { border-left: 1px solid #27272a !important; }
-.rbc-time-content { border-top: 1px solid #27272a !important; }
-.rbc-time-header-content { border-left: 1px solid #27272a !important; }
-.rbc-timeslot-group { border-bottom: 1px solid #27272a !important; }
-.rbc-time-gutter .rbc-timeslot-group { border-right: 1px solid #27272a !important; }
-.rbc-today { background-color: #27272a !important; } /* Dia de hoje */
-.rbc-event { background-color: #eab308 !important; color: black !important; border-radius: 4px; border: none !important; }
-.rbc-toolbar button { color: #eab308; border: 1px solid #3f3f46 !important; }
-.rbc-toolbar button:hover { background-color: #27272a; }
-.rbc-toolbar button.rbc-active { background-color: #eab308; color: black; }
+/* Estilos Limpos para o Calendário (Light Mode inside Dark Dashboard) */
+
+.rbc-calendar {
+  color: #1f2937; /* Texto escuro cinza (Tailwind gray-800) */
+  background-color: white; /* Fundo totalmente branco */
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Linhas e separadores do calendário mais subtis */
+.rbc-header { 
+  border-bottom: 1px solid #e5e7eb !important; 
+  padding: 8px 0;
+  font-weight: 700;
+  color: #4b5563; /* gray-600 */
+}
+.rbc-month-view, .rbc-time-view, .rbc-agenda-view { border: 1px solid #e5e7eb !important; }
+.rbc-day-bg { border-left: 1px solid #f3f4f6 !important; }
+.rbc-time-content { border-top: 1px solid #e5e7eb !important; }
+.rbc-time-header-content { border-left: 1px solid #e5e7eb !important; }
+.rbc-timeslot-group { border-bottom: 1px solid #f3f4f6 !important; }
+.rbc-time-gutter .rbc-timeslot-group { border-right: 1px solid #e5e7eb !important; }
+
+/* Dia Atual com destaque ligeiro */
+.rbc-today { 
+  background-color: #fef9c3 !important; /* Amarelo muito claro (yellow-100) */
+} 
+.rbc-day-slot .rbc-time-slot { border-top: 1px solid #f9fafb; } /* Separador 15 min muito subtil */
+
+/* Toolbar superior (Botões Hoje, Anterior, Próximo, Semana, Mês) */
+.rbc-toolbar {
+  padding: 12px;
+  background-color: white;
+  margin-bottom: 0 !important;
+  border-bottom: 1px solid #e5e7eb;
+}
+.rbc-toolbar button { 
+  color: #4b5563; 
+  border: 1px solid #d1d5db !important; 
+  border-radius: 6px;
+  padding: 6px 12px;
+  margin: 0 4px;
+}
+.rbc-toolbar button:hover { background-color: #f3f4f6; }
+.rbc-toolbar button.rbc-active { 
+  background-color: #eab308; /* Amarelo do tema */
+  color: black; 
+  border-color: #eab308 !important;
+  font-weight: bold;
+}
+.rbc-toolbar-label {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+/* Esconder o evento "all-day" que não faz sentido numa barbearia */
+.rbc-allday-cell { display: none !important; }

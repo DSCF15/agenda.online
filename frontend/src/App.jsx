@@ -24,7 +24,7 @@ function App() {
               <Route path="/confirm/:token" element={<ConfirmAppointment />} />
 
               {/* Rota de Admin (Podes proteger ou fazer /:tenantId/admin depois) */}
-              <Route path="/admin" element={<Admin />} />
+              <Route path="/:tenantId/admin" element={<Admin />} />
               
               {/* Redirecionamento da raiz: Se alguém entrar só em agenda.online.com,
                   mandamos para uma loja padrão ou uma landing page. 

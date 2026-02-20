@@ -7,6 +7,16 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // 1. Função inteligente para ler a loja a partir do endereço (URL)
+  const getCurrentTenant = () => {
+    const pathParts = window.location.pathname.split('/')
+    // Se o URL for "http://localhost:5173/barbeariajc/admin", ele extrai "barbeariajc"
+    if (pathParts.length > 1 && pathParts[1]) {
+      return pathParts[1]
+    }
+    return 'barbeariajc' // Fallback de segurança
+  }
+
   useEffect(() => {
     checkAuth()
   }, [])
@@ -22,7 +32,8 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await fetch(`${API_URL}/auth/me`, {
         headers: { 
-          'Authorization': `Bearer ${token}` 
+          'Authorization': `Bearer ${token}`,
+          'x-tenant': getCurrentTenant() // <-- CORREÇÃO 1: Adicionado o x-tenant dinâmico
         }
       })
       const data = await response.json()
@@ -47,7 +58,7 @@ export const AuthProvider = ({ children }) => {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'x-tenant': 'bella-vista' // Identifica a barbearia
+          'x-tenant': getCurrentTenant() // <-- CORREÇÃO 2: Substituído o 'bella-vista' fixo
         },
         body: JSON.stringify({ email, password })
       })
@@ -59,6 +70,7 @@ export const AuthProvider = ({ children }) => {
         setUser(data.data.user)
         return true
       } else {
+        alert(data.error || 'Login falhou. Verifique as suas credenciais.') // Feedback visual de erro
         throw new Error(data.error || 'Login falhou')
       }
     } catch (error) {
@@ -69,8 +81,9 @@ export const AuthProvider = ({ children }) => {
   const signOut = () => {
     localStorage.removeItem('authToken')
     setUser(null)
-    // Redireciona para a home ou faz refresh
-    window.location.href = '/' 
+    // CORREÇÃO 3: Fazer reload em vez de redirecionar para a raiz (/)
+    // Assim o utilizador volta a ver o ecrã de login da loja onde estava
+    window.location.reload() 
   }
 
   return (

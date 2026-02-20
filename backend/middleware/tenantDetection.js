@@ -4,12 +4,11 @@ export const tenantDetectionMiddleware = async (req, res, next) => {
   try {
     let subdomain = null
     
-    // 1. Extrair Hostname (sem porta se possível, mas req.get('host') inclui porta)
-    const hostHeader = req.get('host') // ex: localhost:5000 ou cliente.meusaas.com
-    const hostname = req.hostname      // ex: localhost ou cliente.meusaas.com (Express trata disto)
+    // 1. Extrair Hostname
+    const hostHeader = req.get('host') 
+    const hostname = req.hostname      
 
     // 2. Deteção Inteligente (Local vs Produção)
-    // Verifica se é localhost ou IP local (127.0.0.1) independentemente da porta
     const isLocal = hostname === 'localhost' || hostname === '127.0.0.1'
 
     if (isLocal) {
@@ -19,10 +18,14 @@ export const tenantDetectionMiddleware = async (req, res, next) => {
     } else {
       // Produção: Pega a primeira parte do domínio
       const parts = hostname.split('.')
-      // Ex: barbeariajc.app.com -> parts[0] = barbeariajc
       if (parts.length >= 2) { 
         subdomain = parts[0]
       }
+    }
+
+    // Fallback de segurança: se falhar o hostname, tenta ir buscar ao cabeçalho na mesma
+    if (!subdomain) {
+      subdomain = req.headers['x-tenant'] || req.query.tenant
     }
 
     if (!subdomain) {
@@ -33,8 +36,7 @@ export const tenantDetectionMiddleware = async (req, res, next) => {
       })
     }
 
-    // 3. Buscar dados (CORREÇÃO AQUI)
-    // Buscamos o tenant INDEPENDENTE do status para poder dar o erro correto
+    // 3. Buscar dados da loja
     const tenant = await Tenant.findOne({ subdomain: subdomain })
 
     if (!tenant) {
@@ -45,40 +47,12 @@ export const tenantDetectionMiddleware = async (req, res, next) => {
       })
     }
 
-    // 4. Verificações de Status e Segurança
-    
-    // Conta Suspensa
-    if (tenant.status === 'suspended') {
-      return res.status(403).json({
-        success: false,
-        error: 'Account Suspended',
-        message: 'Esta conta foi suspensa. Por favor contacte o suporte.'
-      })
-    }
+    // ⛔ VERIFICAÇÕES DE TRIAL E LIMITES FORAM REMOVIDAS DAQUI! ⛔
+    // Como o sistema é teu, todas as lojas estão sempre ativas e aprovadas.
 
-    // Conta Expirada (Inativa)
-    if (tenant.status === 'expired') {
-      return res.status(403).json({
-        success: false,
-        error: 'Subscription Expired',
-        message: 'A subscrição expirou. Renove para continuar a aceder.'
-      })
-    }
-
-    // Trial Expirado
-    // Verifica se está em trial E se a data já passou
-    if (tenant.status === 'trial' && tenant.trialEndsAt && new Date() > new Date(tenant.trialEndsAt)) {
-      // Opcional: Podes atualizar automaticamente para 'expired' aqui se quiseres
-      return res.status(403).json({
-        success: false,
-        error: 'Trial Ended',
-        message: 'O período de teste terminou. Escolha um plano para continuar.'
-      })
-    }
-
-    // Se passou tudo, injeta no request
+    // 4. Injetar no request e deixar passar
     req.tenant = tenant
-    req.tenantId = tenant.subdomain // Mantemos consistência com o teu Service Route
+    req.tenantId = tenant.subdomain 
     
     next()
 
@@ -97,64 +71,8 @@ export const tenantDetectionMiddleware = async (req, res, next) => {
 // =========================================================
 export const checkPlanLimits = (resource) => {
   return async (req, res, next) => {
-    try {
-      const tenant = req.tenant
-      
-      // Defesa extra caso o middleware anterior falhe
-      if (!tenant) {
-        return res.status(500).json({ success: false, error: 'Tenant context missing' })
-      }
-
-      // Se for admin ou plano ilimitado, passa direto (Opcional)
-      if (tenant.plan === 'unlimited') return next()
-
-      const limits = tenant.features || {} 
-      let currentCount = 0
-
-      switch (resource) {
-        case 'services':
-          // Import dinâmico é ok aqui para evitar dependências circulares
-          const { TenantService } = await import('../models/TenantService.js')
-          currentCount = await TenantService.countDocuments({ tenantId: tenant.subdomain })
-          
-          if (limits.maxServices && currentCount >= limits.maxServices) {
-            return res.status(403).json({
-              success: false,
-              error: 'Limit Reached',
-              message: `Atingiu o limite de ${limits.maxServices} serviços do seu plano.`
-            })
-          }
-          break
-
-        case 'appointments':
-          const { TenantAppointment } = await import('../models/TenantAppointment.js')
-          
-          const now = new Date()
-          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-          const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-          
-          currentCount = await TenantAppointment.countDocuments({
-            tenantId: tenant.subdomain,
-            appointmentDate: {
-              $gte: startOfMonth,
-              $lt: startOfNextMonth
-            }
-          })
-          
-          if (limits.maxAppointments && currentCount >= limits.maxAppointments) {
-            return res.status(403).json({
-              success: false,
-              error: 'Limit Reached',
-              message: `Atingiu o limite de ${limits.maxAppointments} agendamentos este mês.`
-            })
-          }
-          break
-      }
-
-      next()
-    } catch (error) {
-      console.error('Erro ao verificar limites:', error)
-      res.status(500).json({ success: false, error: 'Erro ao validar limites do plano.' })
-    }
+    // ⛔ TODOS OS LIMITES FORAM DESATIVADOS ⛔
+    // Podes ter infinitos serviços e infinitos agendamentos. Deixa passar tudo.
+    next()
   }
 }

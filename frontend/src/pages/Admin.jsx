@@ -225,12 +225,11 @@ const Admin = () => {
 
         {/* CONTEÚDO: CALENDÁRIO */}
         {activeTab === 'calendar' && (
-           <div className="animate-fade-in bg-zinc-900 p-4 md:p-6 rounded-2xl border border-zinc-800 shadow-2xl min-h-[600px]">
-             {/* Passamos apenas os agendamentos filtrados para o calendário */}
-             <AdminCalendar appointments={getFilteredAppointments()} />
-           </div>
-        )}
-
+   <div className="animate-fade-in bg-white rounded-2xl border border-zinc-800 shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden h-[75vh] min-h-[600px]">
+     {/* Passamos apenas os agendamentos filtrados para o calendário */}
+     <AdminCalendar appointments={getFilteredAppointments()} />
+   </div>
+)}
         {/* CONTEÚDO: SERVIÇOS (SÓ ADMIN) */}
         {activeTab === 'services' && user.role === 'admin' && (
            <div className="animate-fade-in">

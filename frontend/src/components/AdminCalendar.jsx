@@ -11,16 +11,21 @@ const locales = { 'pt-BR': ptBR }
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales })
 
 // --- COMPONENTE PERSONALIZADO PARA O EVENTO ---
-// Isto é o que vai fazer o calendário ficar bonito e legível
 const CustomEvent = ({ event }) => {
   return (
     <div className="flex flex-col h-full justify-center px-1">
-      <div className="text-xs font-bold truncate leading-tight">
-        {event.title} {/* Nome do Cliente */}
+      <div className="text-xs font-bold truncate leading-tight text-white">
+        {event.title}
       </div>
-      <div className="text-[10px] opacity-90 leading-tight mt-0.5 line-clamp-2">
-        {event.resource.serviceName} {/* Nome do Serviço */}
+      <div className="text-[10px] opacity-90 leading-tight mt-0.5 line-clamp-2 text-white">
+        {event.resource.serviceName}
       </div>
+      {/* Mostra o nome do barbeiro se for vista de Gerente com vários barbeiros misturados */}
+      {event.resource.staffName && (
+        <div className="text-[9px] opacity-75 mt-0.5 italic text-white truncate">
+          ✂ {event.resource.staffName}
+        </div>
+      )}
     </div>
   )
 }
@@ -33,7 +38,7 @@ const AdminCalendar = ({ appointments, onSelectEvent }) => {
 
     return {
       id: apt._id,
-      title: apt.clientName, // Título principal é o cliente
+      title: apt.clientName,
       start: startDateTime,
       end: endDateTime,
       resource: apt,
@@ -41,27 +46,30 @@ const AdminCalendar = ({ appointments, onSelectEvent }) => {
     }
   })
 
+  // Estilos das caixas de marcação
   const eventStyleGetter = (event) => {
-    let backgroundColor = '#8B5CF6' // Roxo (Agendado)
-    if (event.status === 'confirmado') backgroundColor = '#10B981'
-    if (event.status === 'cancelado') backgroundColor = '#EF4444'
-    if (event.status === 'concluido') backgroundColor = '#6B7280'
+    // Cores mais vivas para contrastar no fundo branco
+    let backgroundColor = '#3B82F6' // Azul (Agendado padrão)
+    if (event.status === 'confirmed') backgroundColor = '#10B981' // Verde (Confirmado)
+    if (event.status === 'pending_email') backgroundColor = '#F59E0B' // Laranja (Pendente)
+    if (event.status === 'cancelled') backgroundColor = '#EF4444' // Vermelho (Cancelado)
 
     return {
       style: {
         backgroundColor,
-        borderRadius: '6px',
+        borderRadius: '4px',
         border: 'none',
         color: 'white',
         display: 'block',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        padding: '2px' // Padding interno
+        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+        padding: '3px'
       }
     }
   }
 
   return (
-    <div className="h-[700px] bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    // Removido o bg-white daqui porque o container principal já vai ter a cor base
+    <div className="h-full w-full"> 
       <Calendar
         localizer={localizer}
         events={events}
@@ -69,7 +77,6 @@ const AdminCalendar = ({ appointments, onSelectEvent }) => {
         endAccessor="end"
         style={{ height: '100%', fontFamily: 'Inter, sans-serif' }}
         culture='pt-BR'
-        // Tradução dos botões
         messages={{
           next: "Próximo",
           previous: "Anterior",
@@ -82,18 +89,14 @@ const AdminCalendar = ({ appointments, onSelectEvent }) => {
           time: "Hora",
           event: "Marcação"
         }}
-        // Definições visuais
         defaultView="week"
-        min={new Date(0, 0, 0, 8, 0, 0)} // Começa 08:00
-        max={new Date(0, 0, 0, 21, 0, 0)} // Acaba 21:00
-        step={15} // Intervalos de 15 min
-        timeslots={2} // 2 slots por meia hora (visual mais limpo)
-        
-        // AQUI ESTÁ O SEGREDO: Usar o componente customizado
+        min={new Date(0, 0, 0, 8, 0, 0)}
+        max={new Date(0, 0, 0, 21, 0, 0)}
+        step={15}
+        timeslots={2}
         components={{
           event: CustomEvent
         }}
-        
         eventPropGetter={eventStyleGetter}
         onSelectEvent={onSelectEvent}
       />
